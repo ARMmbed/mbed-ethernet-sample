@@ -1,0 +1,10 @@
+{
+  "name": "mbed-ethernet-sample",
+  "version": "0.1.0",
+  "bin": "./source",
+  "private": true,
+  "description": "mbed ethernet sample for mbedConnectorInterface",
+  "author": "Doug Anson",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}
