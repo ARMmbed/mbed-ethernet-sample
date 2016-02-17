@@ -1,0 +1,1641 @@
+/**
+ * \file sn_nsdl.c
+ *
+ * \brief Nano service device library
+ *
+ *	Application interface to CoAP, GRS and NSP handling.
+ *
+ */
+
+#include <string.h>
+
+#include "nsdl/nsdl_types.h"
+#include "nsdl/sn_nsdl.h"
+#include "nsdl/sn_coap_header.h"
+#include "nsdl/sn_coap_protocol.h"
+#include "nsdl/sn_nsdl_lib.h"
+#include "nsdl/sn_grs.h"
+#include "nsdl/sn_linked_list.h"
+
+/* Defines */
+#define RESOURCE_DIR_LEN				2
+#define RESOURCE_DIR_PATH				{'r','d'}
+
+#define EP_NAME_PARAMETERS_LEN			3
+#define EP_NAME_PARAMETERS				{'e','p','='}
+
+// XXX Domain
+#define DOMAIN_PARAMETERS_LEN		    2
+#define DOMAIN_PARAMETERS				{'d','='}
+
+#define EP_TYPE_PARAMETER_LEN			3
+#define EP_TYPE_PARAMETER				{'e','t','='}
+
+#define RT_PARAMETER_LEN				3
+#define RT_PARAMETER					{'r','t','='}
+
+#define IF_PARAMETER_LEN				3
+#define IF_PARAMETER					{'i','f','='}
+
+#define CON_PARAMETER_LEN				4
+#define CON_PARAMETER					{'c','o','n','='}
+
+#define LT_PARAMETER_LEN				3
+#define LT_PARAMETER					{'l','t','='}
+
+#define OBS_PARAMETER_LEN				3
+#define OBS_PARAMETER					{'o','b','s'}
+
+#define AOBS_PARAMETER_LEN				8
+#define AOBS_PARAMETER					{'a','o','b','s',';','i','d','='}
+
+#define COAP_CON_PARAMETER_LEN			3
+#define COAP_CON_PARAMETER				{'c','t','='}
+
+#define EVENT_PATH_LEN					6
+#define EVENT_PATH						{'e','v','e','n','t','/'}
+
+#define SN_NSDL_EP_REGISTER_MESSAGE		1
+#define SN_NSDL_EP_UPDATE_MESSAGE		2
+
+#define	SN_NSDL_MSG_NO_TYPE				0
+#define	SN_NSDL_MSG_REGISTER			1
+#define SN_NSDL_MSG_UNREGISTER			2
+#define SN_NSDL_MSG_UPDATE				3
+#define SN_NSDL_MSG_EVENT				4
+
+#define	SN_NSDL_MAX_MESSAGE_COUNT		1
+
+/* Constants */
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t 	ep_name_parameter_string[] 	= EP_NAME_PARAMETERS;
+
+// XXX Domain
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t 	domain_parameter_string[] 	= DOMAIN_PARAMETERS;
+
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t 	ep_type_parameter_string[] 	= EP_TYPE_PARAMETER;
+
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t		resource_path_ptr[]			= RESOURCE_DIR_PATH;
+
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t		resource_type_parameter[]	= RT_PARAMETER;
+
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t		obs_parameter[]				= OBS_PARAMETER;
+
+//SN_NSDL_CONST_MEMORY_ATTRIBUTE
+//static uint8_t		aobs_parameter[]			= AOBS_PARAMETER;
+
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t		if_description_parameter[]	= IF_PARAMETER;
+
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t		ep_lifetime_parameter[]		= LT_PARAMETER;
+
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t 	coap_con_type_parameter[]	= COAP_CON_PARAMETER;
+
+SN_NSDL_CONST_MEMORY_ATTRIBUTE
+static uint8_t 	event_path_parameter[]		= EVENT_PATH;
+
+/* Global function pointers */
+static void 	*(*sn_nsdl_alloc)(uint16_t)  = 0;
+static void 	(*sn_nsdl_free)(void*) = 0;
+static uint8_t (*sn_nsdl_tx_callback)(sn_nsdl_capab_e , uint8_t *, uint16_t, sn_nsdl_addr_s *) = 0;
+static uint8_t (*sn_nsdl_rx_callback)(sn_coap_hdr_s *, sn_nsdl_addr_s *) = 0;
+
+/* Global variables */
+static sn_nsdl_ep_parameters_s		*ep_information_ptr  = 0; 	// Endpoint parameters, Name, Domain etc..
+static sn_nsdl_addr_s 				*nsp_address_ptr = 0;		// NSP server address information
+static sn_linked_list_t				*message_list_ptr = 0;		//
+static uint8_t 						sn_nsdl_endpoint_registered = 0;
+static uint8_t						*ep_registration_location_ptr = 0; // captured location path from EP registration
+static uint8_t						ep_registration_location_len = 0; // location path length from registration
+
+/* Function prototypes */
+static int8_t 			sn_nsdl_internal_coap_send					(sn_coap_hdr_s *coap_header_ptr, sn_nsdl_addr_s *dst_addr_ptr, uint8_t message_description);
+static void				sn_nsdl_resolve_nsp_address					(void);
+int8_t 					sn_nsdl_build_registration_body				(sn_coap_hdr_s *message_ptr, uint8_t updating_registeration);
+static uint16_t 		sn_nsdl_calculate_registration_body_size	(uint8_t updating_registeration);
+static uint8_t 			sn_nsdl_calculate_uri_query_option_len		(sn_nsdl_ep_parameters_s *endpoint_info_ptr, uint8_t msg_type);
+static int8_t 			sn_nsdl_fill_uri_query_options				(sn_nsdl_ep_parameters_s *parameter_ptr, sn_coap_hdr_s *source_msg_ptr, uint8_t msg_type);
+static int8_t			sn_nsdl_local_rx_function					(sn_coap_hdr_s *coap_packet_ptr, sn_nsdl_addr_s *address_ptr);
+static int8_t 			sn_nsdl_resolve_ep_information				(sn_coap_hdr_s *coap_packet_ptr);
+static void 			sn_nsdl_mark_resources_as_registered		(void);
+static uint8_t 			sn_nsdl_itoa_len							(uint8_t value);
+static uint8_t 			*sn_nsdl_itoa								(uint8_t *ptr, uint8_t value);
+
+
+int8_t sn_nsdl_destroy(void)
+{
+	if(message_list_ptr)
+	{
+		uint16_t size =  sn_linked_list_count_nodes(message_list_ptr);
+		uint16_t i = 0;
+		sn_nsdl_sent_messages_s*tmp;
+
+
+		for(i=0;i<size;i++)
+		{
+			tmp = sn_linked_list_get_first_node(message_list_ptr);
+
+			if(tmp)
+			{
+				sn_linked_list_remove_current_node(message_list_ptr);
+				sn_nsdl_free(tmp);
+				tmp = 0;
+			}
+		}
+
+		if(!sn_linked_list_count_nodes(message_list_ptr))
+		{
+			sn_linked_list_free(message_list_ptr);
+			message_list_ptr = 0;
+		}
+	}
+
+	if(ep_information_ptr)
+	{
+		if(ep_information_ptr->endpoint_name_ptr)
+		{
+			sn_nsdl_free(ep_information_ptr->endpoint_name_ptr);
+			ep_information_ptr->endpoint_name_ptr = 0;
+		}
+		if(ep_information_ptr->domain_name_ptr)
+		{
+			sn_nsdl_free(ep_information_ptr->domain_name_ptr);
+			ep_information_ptr->domain_name_ptr = 0;
+			ep_information_ptr->domain_name_len = 0;
+		}
+		if(ep_information_ptr->type_ptr)
+		{
+			sn_nsdl_free(ep_information_ptr->type_ptr);
+			ep_information_ptr->type_ptr = 0;
+		}
+
+		if(ep_information_ptr->lifetime_ptr)
+
+		{
+			sn_nsdl_free(ep_information_ptr->lifetime_ptr);
+			ep_information_ptr->lifetime_ptr = 0;
+		}
+
+		sn_nsdl_free(ep_information_ptr);
+		ep_information_ptr = 0;
+	}
+
+	if(nsp_address_ptr)
+	{
+		if(nsp_address_ptr->socket_information)
+		{
+			sn_nsdl_free(nsp_address_ptr->socket_information);
+			nsp_address_ptr->socket_information= 0;
+		}
+
+		if(nsp_address_ptr->addr_ptr)
+		{
+			sn_nsdl_free(nsp_address_ptr->addr_ptr);
+			nsp_address_ptr->addr_ptr = 0;
+		}
+		sn_nsdl_free(nsp_address_ptr);
+		nsp_address_ptr = 0;
+	}
+
+	if (ep_registration_location_ptr)
+	{
+		sn_nsdl_free(ep_registration_location_ptr);
+		ep_registration_location_ptr = 0;
+	}
+
+	/* Destroy also libCoap and grs part of libNsdl */
+	sn_grs_destroy();
+	sn_coap_protocol_destroy();
+
+	return 0;
+}
+
+int8_t sn_nsdl_init	(uint8_t (*sn_nsdl_tx_cb)(sn_nsdl_capab_e , uint8_t *, uint16_t, sn_nsdl_addr_s *),
+							uint8_t (*sn_nsdl_rx_cb)(sn_coap_hdr_s *, sn_nsdl_addr_s *),
+							sn_nsdl_mem_s *sn_memory)
+{
+	/* Check pointers and define function pointers */
+	if(!sn_memory || !sn_memory->sn_nsdl_alloc || !sn_memory->sn_nsdl_free || !sn_nsdl_tx_cb || !sn_nsdl_rx_cb)
+		return SN_NSDL_FAILURE;
+
+	/* Define function pointers */
+	sn_nsdl_alloc = sn_memory->sn_nsdl_alloc;
+	sn_nsdl_free = sn_memory->sn_nsdl_free;
+
+	sn_nsdl_tx_callback = sn_nsdl_tx_cb;
+	sn_nsdl_rx_callback = sn_nsdl_rx_cb;
+
+	sn_linked_list_init(sn_nsdl_alloc, sn_nsdl_free);
+
+	message_list_ptr = sn_linked_list_create();
+	if(!message_list_ptr)
+		return SN_NSDL_FAILURE;
+
+	/* Initialize ep parameters struct */
+	if(!ep_information_ptr)
+	{
+		ep_information_ptr = sn_nsdl_alloc(sizeof(sn_nsdl_ep_parameters_s));
+		if(!ep_information_ptr)
+		{
+			sn_linked_list_free(message_list_ptr);
+			return SN_NSDL_FAILURE;
+		}
+		memset(ep_information_ptr, 0, sizeof(sn_nsdl_ep_parameters_s));
+	}
+
+	/* Initialize GRS */
+	if(sn_grs_init(sn_nsdl_tx_cb,&sn_nsdl_local_rx_function, sn_memory))
+	{
+
+		sn_nsdl_free(ep_information_ptr);
+		ep_information_ptr = 0;
+		sn_linked_list_free(message_list_ptr);
+		return SN_NSDL_FAILURE;
+
+	}
+
+	// todo: Resolve NS server address -> v0.5 = hardcoded address
+	sn_nsdl_resolve_nsp_address();
+
+	sn_nsdl_endpoint_registered = SN_NSDL_ENDPOINT_NOT_REGISTERED;
+
+	return SN_NSDL_SUCCESS;
+}
+
+int8_t sn_nsdl_GET_with_QUERY(char * uri, uint16_t urilen, uint8_t*destination, uint16_t port, char *query, uint8_t query_len)
+{
+	sn_coap_hdr_s 	*message_ptr;
+	sn_nsdl_addr_s *dst = 0;
+
+	message_ptr = sn_nsdl_alloc(sizeof(sn_coap_hdr_s));
+	if(message_ptr == NULL)
+		return SN_NSDL_FAILURE;
+
+	memset(message_ptr, 0, sizeof(sn_coap_hdr_s));
+
+	/* Fill message fields -> confirmable post to specified NSP path */
+	message_ptr->msg_type 	= 	COAP_MSG_TYPE_CONFIRMABLE;
+	message_ptr->msg_code 	= 	COAP_MSG_CODE_REQUEST_GET;
+	/* Allocate memory for the extended options list */
+	message_ptr->options_list_ptr = sn_nsdl_alloc(sizeof(sn_coap_options_list_s));
+	if(message_ptr->options_list_ptr == NULL)
+	{
+		sn_nsdl_free(message_ptr);
+		message_ptr = 0;
+		return SN_NSDL_FAILURE;
+	}
+
+
+	memset(message_ptr->options_list_ptr, 0, sizeof(sn_coap_options_list_s));
+	message_ptr->options_list_ptr->uri_query_len =query_len;
+	message_ptr->options_list_ptr->uri_query_ptr = (uint8_t *)query;
+	message_ptr->uri_path_len = urilen;
+	message_ptr->uri_path_ptr = (uint8_t *)uri;
+
+	/* Build and send coap message to NSP */
+	/* Local variables */
+	if(!dst)
+	{
+		//allocate only if previously not allocated
+		dst = sn_nsdl_alloc(sizeof(sn_nsdl_addr_s));
+	}
+
+	if(dst)
+	{
+		/* This is only for version 0.5 */
+		dst->type = SN_NSDL_ADDRESS_TYPE_IPV6;
+		dst->port = port;
+		dst->addr_len = 16;
+		if(!dst->addr_ptr)
+		{
+			dst->addr_ptr = sn_nsdl_alloc(dst->addr_len);
+			memcpy(dst->addr_ptr, destination, 16);
+		}
+	}
+
+	sn_grs_send_coap_message(dst, message_ptr);
+
+	if(dst->addr_ptr)
+		sn_nsdl_free(dst->addr_ptr);
+
+	if(dst)
+		sn_nsdl_free(dst);
+	message_ptr->uri_path_ptr = NULL;
+	message_ptr->options_list_ptr->uri_host_ptr = NULL;
+	message_ptr->options_list_ptr->uri_query_ptr = NULL;
+
+	sn_coap_parser_release_allocated_coap_msg_mem(message_ptr);
+	return SN_NSDL_SUCCESS;
+}
+
+int8_t sn_nsdl_GET(char * uri, uint16_t urilen, uint8_t*destination, uint16_t port)
+{
+	sn_coap_hdr_s 	*message_ptr;
+	sn_nsdl_addr_s *dst = 0;
+
+
+	message_ptr = sn_nsdl_alloc(sizeof(sn_coap_hdr_s));
+	if(message_ptr == NULL)
+		return SN_NSDL_FAILURE;
+
+	memset(message_ptr, 0, sizeof(sn_coap_hdr_s));
+
+	/* Fill message fields -> confirmable post to specified NSP path */
+	message_ptr->msg_type 	= 	COAP_MSG_TYPE_CONFIRMABLE;
+	message_ptr->msg_code 	= 	COAP_MSG_CODE_REQUEST_GET;
+	/* Allocate memory for the extended options list */
+	message_ptr->options_list_ptr = sn_nsdl_alloc(sizeof(sn_coap_options_list_s));
+	if(message_ptr->options_list_ptr == NULL)
+	{
+		sn_nsdl_free(message_ptr);
+		message_ptr = 0;
+		return SN_NSDL_FAILURE;
+	}
+
+
+	memset(message_ptr->options_list_ptr, 0, sizeof(sn_coap_options_list_s));
+
+	message_ptr->uri_path_len = urilen;
+	message_ptr->uri_path_ptr = (uint8_t *)uri;
+
+	/* Build and send coap message to NSP */
+	/* Local variables */
+	if(!dst)
+	{
+		//allocate only if previously not allocated
+		dst = sn_nsdl_alloc(sizeof(sn_nsdl_addr_s));
+		memset(dst, 0, sizeof(sn_nsdl_addr_s));
+	}
+
+	if(dst)
+	{
+		/* This is only for version 0.5 */
+		dst->type = SN_NSDL_ADDRESS_TYPE_IPV6;
+		dst->port = port;
+		dst->addr_len = 16;
+		if(!dst->addr_ptr)
+		{
+			dst->addr_ptr = sn_nsdl_alloc(dst->addr_len);
+			memcpy(dst->addr_ptr, destination, 16);
+		}
+	}
+	sn_grs_send_coap_message(dst, message_ptr);
+
+	if(dst->addr_ptr)
+		sn_nsdl_free(dst->addr_ptr);
+	if(dst)
+		sn_nsdl_free(dst);
+	message_ptr->uri_path_ptr = NULL;
+	message_ptr->options_list_ptr->uri_host_ptr = NULL;
+
+	sn_coap_parser_release_allocated_coap_msg_mem(message_ptr);
+	return SN_NSDL_SUCCESS;
+}
+
+
+
+int8_t sn_nsdl_register_endpoint(sn_nsdl_ep_parameters_s *endpoint_info_ptr)
+{
+	/* Local variables */
+	sn_coap_hdr_s 	*register_message_ptr;
+	int8_t			status 					= 0;
+
+	if(!endpoint_info_ptr)
+		return SN_NSDL_FAILURE;
+
+	/*** Build endpoint register message ***/
+
+	/* Allocate memory for header struct */
+	register_message_ptr = sn_nsdl_alloc(sizeof(sn_coap_hdr_s));
+	if(register_message_ptr == NULL)
+		return SN_NSDL_FAILURE;
+
+	memset(register_message_ptr, 0, sizeof(sn_coap_hdr_s));
+
+	/* Fill message fields -> confirmable post to specified NSP path */
+	register_message_ptr->msg_type 	= 	COAP_MSG_TYPE_CONFIRMABLE;
+	register_message_ptr->msg_code 	= 	COAP_MSG_CODE_REQUEST_POST;
+
+	/* Allocate memory for the extended options list */
+	register_message_ptr->options_list_ptr = sn_nsdl_alloc(sizeof(sn_coap_options_list_s));
+	if(register_message_ptr->options_list_ptr == NULL)
+	{
+		sn_nsdl_free(register_message_ptr);
+		register_message_ptr = 0;
+		return SN_NSDL_FAILURE;
+	}
+
+	memset(register_message_ptr->options_list_ptr, 0, sizeof(sn_coap_options_list_s));
+
+	register_message_ptr->uri_path_len = sizeof(resource_path_ptr);
+	register_message_ptr->uri_path_ptr = resource_path_ptr;
+
+	/* If domain name is configured, fill needed fields */
+	// FIXME Domain name should be registered as "d=domain" query parameter, not in option uri-host
+	if(endpoint_info_ptr->domain_name_len)
+	{
+		register_message_ptr->options_list_ptr->uri_host_len = endpoint_info_ptr->domain_name_len;
+		register_message_ptr->options_list_ptr->uri_host_ptr = endpoint_info_ptr->domain_name_ptr;
+	}
+
+	/* Fill Uri-query options */
+	sn_nsdl_fill_uri_query_options(endpoint_info_ptr, register_message_ptr, SN_NSDL_EP_REGISTER_MESSAGE);
+#ifndef REG_TEMPLATE
+	/* Built body for message */
+	status = sn_nsdl_build_registration_body(register_message_ptr, 0);
+	if(status == SN_NSDL_FAILURE)
+	{
+		register_message_ptr->uri_path_ptr = NULL;
+		register_message_ptr->options_list_ptr->uri_host_ptr = NULL;
+		sn_coap_parser_release_allocated_coap_msg_mem(register_message_ptr);
+		return SN_NSDL_FAILURE;
+	}
+#endif
+	/* Build and send coap message to NSP */
+	status = sn_nsdl_internal_coap_send(register_message_ptr, nsp_address_ptr, SN_NSDL_MSG_REGISTER);
+
+	if(register_message_ptr->payload_ptr)
+	{
+		sn_nsdl_free(register_message_ptr->payload_ptr);
+		register_message_ptr->payload_ptr = NULL;
+	}
+
+	register_message_ptr->uri_path_ptr = NULL;
+	register_message_ptr->options_list_ptr->uri_host_ptr = NULL;
+
+	sn_coap_parser_release_allocated_coap_msg_mem(register_message_ptr);
+
+	if(ep_information_ptr)
+	{
+		if(ep_information_ptr->domain_name_ptr)
+		{
+			sn_nsdl_free(ep_information_ptr->domain_name_ptr);
+			ep_information_ptr->domain_name_ptr = 0;
+			ep_information_ptr->domain_name_len = 0;
+		}
+
+		if(ep_information_ptr->endpoint_name_ptr)
+		{
+			sn_nsdl_free(ep_information_ptr->endpoint_name_ptr);
+			ep_information_ptr->endpoint_name_ptr = 0;
+			ep_information_ptr->endpoint_name_len = 0;
+		}
+
+		if(endpoint_info_ptr->domain_name_ptr)
+		{
+
+			if(!ep_information_ptr->domain_name_ptr)
+			{
+				ep_information_ptr->domain_name_ptr = sn_nsdl_alloc(endpoint_info_ptr->domain_name_len);
+			}
+			if(!ep_information_ptr->domain_name_ptr)
+			{
+				return SN_NSDL_FAILURE;
+			}
+
+			memcpy(ep_information_ptr->domain_name_ptr, endpoint_info_ptr->domain_name_ptr, endpoint_info_ptr->domain_name_len);
+			ep_information_ptr->domain_name_len = endpoint_info_ptr->domain_name_len;
+
+		}
+
+		if(endpoint_info_ptr->endpoint_name_ptr)
+		{
+
+			if(!ep_information_ptr->endpoint_name_ptr)
+			{
+				ep_information_ptr->endpoint_name_ptr = sn_nsdl_alloc(endpoint_info_ptr->endpoint_name_len);
+			}
+			if(!ep_information_ptr->endpoint_name_ptr)
+			{
+				if(ep_information_ptr->domain_name_ptr)
+				{
+					sn_nsdl_free(ep_information_ptr->domain_name_ptr);
+					ep_information_ptr->domain_name_ptr  = 0;
+					ep_information_ptr->domain_name_len = 0;
+				}
+				return SN_NSDL_FAILURE;
+			}
+
+			memcpy(ep_information_ptr->endpoint_name_ptr, endpoint_info_ptr->endpoint_name_ptr, endpoint_info_ptr->endpoint_name_len);
+			ep_information_ptr->endpoint_name_len = endpoint_info_ptr->endpoint_name_len;
+
+		}
+	}
+
+	return status;
+}
+
+int8_t sn_nsdl_unregister_endpoint(void)
+{
+	/* Local variables */
+	sn_coap_hdr_s  	*unregister_message_ptr;
+	uint8_t			*temp_ptr = 0;
+
+	/* Check that EP have been registered */
+	if(sn_nsdl_is_ep_registered())
+	{
+
+		/* Memory allocation for unregister message */
+		unregister_message_ptr = sn_nsdl_alloc(sizeof(sn_coap_hdr_s));
+		if(!unregister_message_ptr)
+			return SN_NSDL_FAILURE;
+
+		memset(unregister_message_ptr, 0, sizeof(sn_coap_hdr_s));
+
+		/* Fill unregister message */
+		unregister_message_ptr->msg_type = COAP_MSG_TYPE_CONFIRMABLE;
+		unregister_message_ptr->msg_code = COAP_MSG_CODE_REQUEST_DELETE;
+
+//FIXME use the captured location path - ep_registration_location_ptr, look at reg update code
+		/*
+		unregister_message_ptr->uri_path_len = (RESOURCE_DIR_LEN + 1 + ep_information_ptr->domain_name_len + 1 + ep_information_ptr->endpoint_name_len);
+		unregister_message_ptr->uri_path_ptr = sn_nsdl_alloc(unregister_message_ptr->uri_path_len);
+		if (!unregister_message_ptr->uri_path_ptr)
+		{
+			sn_coap_parser_release_allocated_coap_msg_mem(unregister_message_ptr);
+			return SN_NSDL_FAILURE;
+		}
+
+		temp_ptr = unregister_message_ptr->uri_path_ptr;
+
+		memcpy(temp_ptr,resource_path_ptr, RESOURCE_DIR_LEN);
+		temp_ptr += RESOURCE_DIR_LEN;
+
+		*temp_ptr++ = '/';
+
+		memcpy(temp_ptr ,ep_information_ptr->domain_name_ptr, ep_information_ptr->domain_name_len);
+		temp_ptr += ep_information_ptr->domain_name_len;
+
+		*temp_ptr++ = '/';
+
+		memcpy(temp_ptr ,ep_information_ptr->endpoint_name_ptr, ep_information_ptr->endpoint_name_len);
+		*/
+
+		unregister_message_ptr->uri_path_len = ep_registration_location_len;
+
+		unregister_message_ptr->uri_path_ptr = sn_nsdl_alloc(unregister_message_ptr->uri_path_len);
+		if (!unregister_message_ptr->uri_path_ptr)
+		{
+			sn_coap_parser_release_allocated_coap_msg_mem(unregister_message_ptr);
+			return SN_NSDL_FAILURE;
+		}
+
+		temp_ptr = unregister_message_ptr->uri_path_ptr;
+		memcpy(temp_ptr, ep_registration_location_ptr, ep_registration_location_len);
+
+		/* Send message */
+		sn_nsdl_internal_coap_send(unregister_message_ptr, nsp_address_ptr, SN_NSDL_MSG_UNREGISTER);
+
+		/* Free memory */
+		sn_coap_parser_release_allocated_coap_msg_mem(unregister_message_ptr);
+
+	}
+
+	return SN_NSDL_SUCCESS;
+}
+
+int8_t sn_nsdl_update_registration (sn_nsdl_ep_parameters_s *endpoint_info_ptr)
+{
+	/* Local variables */
+	sn_coap_hdr_s 	*register_message_ptr;
+	uint8_t			*temp_ptr;
+
+	/*** Build endpoint register update message ***/
+
+	/* Allocate memory for header struct */
+	register_message_ptr = sn_nsdl_alloc(sizeof(sn_coap_hdr_s));
+	if(register_message_ptr == NULL)
+		return SN_NSDL_FAILURE;
+
+	memset(register_message_ptr, 0, sizeof(sn_coap_hdr_s));
+
+	/* Fill message fields -> confirmable post to specified NSP path */
+	register_message_ptr->msg_type 	= 	COAP_MSG_TYPE_CONFIRMABLE;
+	register_message_ptr->msg_code 	= 	COAP_MSG_CODE_REQUEST_PUT;
+
+	register_message_ptr->uri_path_len 	= 	ep_registration_location_len; 	// captured location path from registration response header
+//	register_message_ptr->uri_path_len 	= 	sizeof(resource_path_ptr) + ep_information_ptr->domain_name_len + ep_information_ptr->endpoint_name_len + 2; 	// = rd/domain/endpoint
+//	register_message_ptr->uri_path_len 	= 	sizeof(resource_path_ptr) + ep_information_ptr->domain_name_len +  1; 	// = rd/domain where domain is the location as a UID
+
+	register_message_ptr->uri_path_ptr 	= 	sn_nsdl_alloc(register_message_ptr->uri_path_len);
+	if(!register_message_ptr->uri_path_ptr)
+	{
+		sn_coap_parser_release_allocated_coap_msg_mem(register_message_ptr);
+		return SN_NSDL_FAILURE;
+	}
+
+	temp_ptr = register_message_ptr->uri_path_ptr;
+	memcpy(temp_ptr, ep_registration_location_ptr, ep_registration_location_len);
+
+// used to assume domain and endpoint location construction
+	/* rd/ */
+//	memcpy(temp_ptr, resource_path_ptr, sizeof(resource_path_ptr));
+//	temp_ptr += sizeof(resource_path_ptr);
+//	*temp_ptr++ = '/';
+
+	/* rd/DOMAIN/ */
+//	memcpy(temp_ptr, ep_information_ptr->domain_name_ptr, ep_information_ptr->domain_name_len);
+//	temp_ptr += ep_information_ptr->domain_name_len;
+//	*temp_ptr++ = '/';
+
+	/* rd/domain/ENDPOINT */
+//	memcpy(temp_ptr, ep_information_ptr->endpoint_name_ptr, ep_information_ptr->endpoint_name_len);
+
+
+	/* Allocate memory for the extended options list */
+	register_message_ptr->options_list_ptr = sn_nsdl_alloc(sizeof(sn_coap_options_list_s));
+	if(register_message_ptr->options_list_ptr == NULL)
+	{
+		sn_coap_parser_release_allocated_coap_msg_mem(register_message_ptr);
+		return SN_NSDL_FAILURE;
+	}
+
+	memset(register_message_ptr->options_list_ptr, 0, sizeof(sn_coap_options_list_s));
+
+	/* Fill Uri-query options */
+	sn_nsdl_fill_uri_query_options(endpoint_info_ptr, register_message_ptr, SN_NSDL_EP_UPDATE_MESSAGE);
+
+	/* Build and send coap message to NSP */
+	sn_nsdl_internal_coap_send(register_message_ptr, nsp_address_ptr, SN_NSDL_MSG_UPDATE);
+
+	if(register_message_ptr->payload_ptr)
+		sn_nsdl_free(register_message_ptr->payload_ptr);
+	sn_coap_parser_release_allocated_coap_msg_mem(register_message_ptr);
+
+	return SN_NSDL_SUCCESS;
+}
+
+int8_t sn_nsdl_send_eventing_message (uint8_t *event_name_ptr, uint16_t event_name_len, uint8_t *message_body_ptr, uint16_t message_body_len)
+{
+	sn_coap_hdr_s 	*eventing_message_ptr;
+	int8_t			status = 0;
+
+	/* Allocate and initialize memory for header struct */
+	eventing_message_ptr = sn_nsdl_alloc(sizeof(sn_coap_hdr_s));
+	if(eventing_message_ptr == NULL)
+		return SN_NSDL_FAILURE;
+
+	memset(eventing_message_ptr, 0, sizeof(sn_coap_hdr_s));
+
+	/* Fill header */
+	eventing_message_ptr->msg_type = COAP_MSG_TYPE_CONFIRMABLE;
+	eventing_message_ptr->msg_code = COAP_MSG_CODE_REQUEST_POST;
+
+	/* Fill uri path option */
+	eventing_message_ptr->uri_path_len = sizeof(event_path_parameter) + event_name_len;
+	eventing_message_ptr->uri_path_ptr = sn_nsdl_alloc(eventing_message_ptr->uri_path_len);
+
+	if(!eventing_message_ptr->uri_path_ptr)
+	{
+		sn_coap_parser_release_allocated_coap_msg_mem(eventing_message_ptr);
+		return SN_NSDL_FAILURE;
+	}
+
+	memcpy(eventing_message_ptr->uri_path_ptr, event_path_parameter, sizeof(event_path_parameter));
+	memcpy(eventing_message_ptr->uri_path_ptr + sizeof(event_path_parameter), event_name_ptr, event_name_len);
+
+	/* Fill payload */
+	eventing_message_ptr->payload_len = message_body_len;
+	eventing_message_ptr->payload_ptr = message_body_ptr;
+
+	/* Send coap message */
+	status = sn_nsdl_internal_coap_send(eventing_message_ptr, nsp_address_ptr, SN_NSDL_MSG_EVENT);
+
+	eventing_message_ptr->payload_ptr = NULL;
+
+	sn_coap_parser_release_allocated_coap_msg_mem(eventing_message_ptr);
+
+	return status;
+}
+
+void sn_nsdl_nsp_lost(void)
+{
+	sn_nsdl_endpoint_registered = SN_NSDL_ENDPOINT_NOT_REGISTERED;
+	return;
+}
+
+int8_t sn_nsdl_is_ep_registered(void)
+{
+
+	return sn_nsdl_endpoint_registered;
+}
+
+uint16_t sn_nsdl_send_observation_notification(uint8_t *token_ptr, uint8_t token_len,
+													uint8_t *payload_ptr, uint16_t payload_len,
+													uint8_t *observe_ptr, uint8_t observe_len,
+													sn_coap_msg_type_e message_type, uint8_t content_type)
+{
+	sn_coap_hdr_s 	*notification_message_ptr;
+	uint16_t		return_msg_id = 0;
+
+	/* Allocate and initialize memory for header struct */
+	notification_message_ptr = sn_nsdl_alloc(sizeof(sn_coap_hdr_s));
+	if(notification_message_ptr == NULL)
+		return 0;
+
+	memset(notification_message_ptr, 0, sizeof(sn_coap_hdr_s));
+
+	notification_message_ptr->options_list_ptr = sn_nsdl_alloc(sizeof(sn_coap_options_list_s));
+	if(notification_message_ptr->options_list_ptr  == NULL)
+	{
+		sn_nsdl_free(notification_message_ptr);
+		return 0;
+	}
+
+	memset(notification_message_ptr->options_list_ptr , 0, sizeof(sn_coap_options_list_s));
+
+	/* Fill header */
+	notification_message_ptr->msg_type = message_type;
+	notification_message_ptr->msg_code = COAP_MSG_CODE_RESPONSE_CONTENT;
+
+	/* Fill token */
+	notification_message_ptr->token_len = token_len;
+	notification_message_ptr->token_ptr = token_ptr;
+
+	/* Fill payload */
+	notification_message_ptr->payload_len = payload_len;
+	notification_message_ptr->payload_ptr = payload_ptr;
+
+	/* Fill observe */
+	notification_message_ptr->options_list_ptr->observe_len = observe_len;
+	notification_message_ptr->options_list_ptr->observe_ptr = observe_ptr;
+
+	/* Fill content type */
+	if(content_type)
+	{
+		notification_message_ptr->content_type_len = 1;
+		notification_message_ptr->content_type_ptr = &content_type;
+	}
+
+	/* Send message */
+	if(sn_grs_send_coap_message(nsp_address_ptr,notification_message_ptr) == SN_NSDL_FAILURE)
+		return_msg_id = 0;
+	else
+		return_msg_id = notification_message_ptr->msg_id;
+
+	/* Free memory */
+
+	notification_message_ptr->payload_ptr = NULL;
+	notification_message_ptr->options_list_ptr->observe_ptr = NULL;
+	notification_message_ptr->token_ptr = NULL;
+	notification_message_ptr->content_type_ptr = NULL;
+
+	sn_coap_parser_release_allocated_coap_msg_mem(notification_message_ptr);
+
+	return return_msg_id;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * */
+/* 			GRS Wrapper					   */
+/* These are documented in sn_grs.c - file */
+/* * * * * * * * * * * * * * * * * * * * * */
+
+int16_t sn_nsdl_get_capability(void)
+{
+	return sn_grs_get_capability();
+}
+
+
+uint32_t sn_nsdl_get_version(void)
+{
+	return sn_grs_get_version();
+}
+
+
+int8_t sn_nsdl_process_http(uint8_t *packet_ptr, uint16_t *packet_len_ptr, sn_nsdl_addr_s *src_ptr)
+{
+	return sn_grs_process_http(packet_ptr, packet_len_ptr, src_ptr);
+}
+
+
+int8_t sn_nsdl_process_coap(uint8_t *packet_ptr, uint16_t packet_len_ptr, sn_nsdl_addr_s *src_ptr)
+{
+	return sn_grs_process_coap(packet_ptr, packet_len_ptr, src_ptr);
+}
+
+int8_t sn_nsdl_exec(uint32_t time)
+{
+	return sn_grs_exec(time);
+}
+
+int8_t sn_nsdl_create_resource(sn_nsdl_resource_info_s *res_ptr)
+{
+	return sn_grs_create_resource(res_ptr);
+}
+
+int8_t sn_nsdl_update_resource(sn_nsdl_resource_info_s *res_ptr)
+{
+	return sn_grs_update_resource(res_ptr);
+}
+
+int8_t sn_nsdl_delete_resource(uint8_t pathlen, uint8_t *path_ptr)
+{
+	return sn_grs_delete_resource(pathlen, path_ptr);
+}
+
+sn_nsdl_resource_info_s *sn_nsdl_get_resource(uint16_t pathlen, uint8_t *path_ptr)
+{
+	return sn_grs_get_resource(pathlen, path_ptr);
+}
+
+sn_grs_resource_list_s *sn_nsdl_list_resource(uint16_t pathlen, uint8_t *path_ptr)
+{
+	return sn_grs_list_resource(pathlen, path_ptr);
+}
+
+int8_t sn_nsdl_send_coap_message(sn_nsdl_addr_s *address_ptr, sn_coap_hdr_s *coap_hdr_ptr)
+{
+	return sn_grs_send_coap_message(address_ptr, coap_hdr_ptr);
+}
+
+/********************/
+/* Static functions */
+/********************/
+
+
+/**
+ * \fn static int8_t sn_nsdl_send_coap_message(sn_coap_hdr_s *coap_header_ptr, sn_nsdl_addr_s *dst_addr_ptr, uint8_t message_description)
+ *
+ *
+ * \brief To send NSDL messages. Stores message id?s and message description to catch response from NSP server
+ *
+ * \param	*coap_header_ptr	Pointer to the CoAP message header to be sent
+ * \param	*dst_addr_ptr		Pointer to the address structure that contains destination address information
+ * \param	message_description Message description to be stored to list for waiting response
+ *
+ * \return		SN_NSDL_SUCCESS = 0, Failed = -1
+ */
+static int8_t sn_nsdl_internal_coap_send(sn_coap_hdr_s *coap_header_ptr, sn_nsdl_addr_s *dst_addr_ptr, uint8_t message_description)
+{
+	uint8_t 					*coap_message_ptr 	= NULL;
+	uint16_t 					coap_message_len 	= 0;
+	int16_t 						status 				= 0;
+
+	coap_message_len = sn_coap_builder_calc_needed_packet_data_size(coap_header_ptr);
+
+	if(coap_message_len == 0)
+		return SN_NSDL_FAILURE;
+
+	coap_message_ptr = sn_nsdl_alloc(coap_message_len);
+	if(!coap_message_ptr)
+		return SN_NSDL_FAILURE;
+
+	/* Build message */
+	status = sn_coap_protocol_build(dst_addr_ptr,coap_message_ptr, coap_header_ptr);
+
+	/* If message building failed */
+	if(status < 0)
+	{
+		sn_nsdl_free(coap_message_ptr);
+		return SN_NSDL_FAILURE;
+	}
+
+	/* If mesage type is confirmable, save it to list to wait for reply */
+	if(coap_header_ptr->msg_type == COAP_MSG_TYPE_CONFIRMABLE)
+	{
+		sn_nsdl_sent_messages_s *message_ptr = sn_nsdl_alloc(sizeof(sn_nsdl_sent_messages_s));
+		if(message_ptr)
+		{
+			if(sn_linked_list_count_nodes(message_list_ptr) >= SN_NSDL_MAX_MESSAGE_COUNT)
+			{
+				sn_nsdl_sent_messages_s *message_temp_ptr = sn_linked_list_get_last_node(message_list_ptr);
+				if(message_temp_ptr)
+					sn_nsdl_free(message_temp_ptr);
+				sn_linked_list_remove_current_node(message_list_ptr);
+			}
+
+			message_ptr->message_type = message_description;
+			message_ptr->msg_id_number = coap_header_ptr->msg_id;
+			sn_linked_list_add_node(message_list_ptr, (void*)message_ptr);
+
+			status = SN_NSDL_SUCCESS;
+		}
+		else
+		{
+			status = SN_NSDL_FAILURE;
+		}
+
+	}
+
+	if (status == SN_NSDL_SUCCESS)
+	{
+		uint8_t result = sn_nsdl_tx_callback(SN_NSDL_PROTOCOL_COAP, coap_message_ptr, coap_message_len, dst_addr_ptr);
+
+		if (result == 0)
+		{
+			status = SN_NSDL_FAILURE;
+		}
+	}
+
+	sn_nsdl_free(coap_message_ptr);
+
+	return status;
+}
+
+/**
+ * \fn static void sn_nsdl_resolve_nsp_address(void)
+ *
+ * \brief Resolves NSP server address.
+ *
+ * \note Application must set NSP address with set_nsp_address
+ */
+static void sn_nsdl_resolve_nsp_address(void)
+{
+	/* Local variables */
+	if(!nsp_address_ptr)
+	{
+		//allocate only if previously not allocated
+		nsp_address_ptr = sn_nsdl_alloc(sizeof(sn_nsdl_addr_s));
+	}
+
+	if(nsp_address_ptr)
+	{
+		memset(nsp_address_ptr, 0, sizeof(sn_nsdl_addr_s));
+		/* This is only for version 0.5 */
+		nsp_address_ptr->type = SN_NSDL_ADDRESS_TYPE_NONE;
+	}
+
+	/* Todo: get NSP address */
+}
+
+/**
+ * \fn static int8_t sn_nsdl_build_registration_body(sn_coap_hdr_s *message_ptr)
+ *
+ * \brief 	To build GRS resources to registration message payload
+ *
+ * \param	*message_ptr Pointer to CoAP message header
+ *
+ * \return	SN_NSDL_SUCCESS = 0, Failed = -1
+ */
+int8_t sn_nsdl_build_registration_body(sn_coap_hdr_s *message_ptr, uint8_t updating_registeration)
+{
+	/* Local variables */
+	uint8_t					*temp_ptr;
+	sn_nsdl_resource_info_s 	*resource_temp_ptr;
+
+
+	/* Get list of resources */
+
+
+	/* Calculate needed memory and allocate */
+	message_ptr->payload_len = sn_nsdl_calculate_registration_body_size(updating_registeration);
+
+	/* If no resources to be registered, return SN_NSDL_SUCCESS */
+	if(!message_ptr->payload_len)
+	{
+		return SN_NSDL_SUCCESS;
+	}
+
+	message_ptr->payload_ptr = sn_nsdl_alloc(message_ptr->payload_len);
+	if(!message_ptr->payload_ptr)
+	{
+		return SN_NSDL_FAILURE;
+	}
+
+	/* Build message */
+	temp_ptr = message_ptr->payload_ptr;
+
+	resource_temp_ptr = sn_grs_get_first_resource();
+
+	/* Loop trough all resources */
+	while(resource_temp_ptr)
+	{
+
+		/* if resource needs to be registered */
+		if(resource_temp_ptr->resource_parameters_ptr)
+		{
+
+			if(updating_registeration && resource_temp_ptr->resource_parameters_ptr->registered == SN_NDSL_RESOURCE_REGISTERED)
+			{
+				resource_temp_ptr = sn_grs_get_next_resource();
+				continue;
+			}
+			else
+			{
+				resource_temp_ptr->resource_parameters_ptr->registered = SN_NDSL_RESOURCE_REGISTERING;
+			}
+
+			/* If not first resource, add '.' to separator */
+			if(temp_ptr != message_ptr->payload_ptr)
+				*temp_ptr++ = ',';
+
+			*temp_ptr++ = '<';
+			*temp_ptr++ = '/';
+			memcpy(temp_ptr, resource_temp_ptr->path, resource_temp_ptr->pathlen);
+			temp_ptr += resource_temp_ptr->pathlen;
+			*temp_ptr++ = '>';
+
+			/* Resource attributes */
+			if(resource_temp_ptr->resource_parameters_ptr->resource_type_len)
+			{
+				*temp_ptr++ = ';';
+				memcpy(temp_ptr, resource_type_parameter, RT_PARAMETER_LEN);
+				temp_ptr += RT_PARAMETER_LEN;
+				*temp_ptr++ = '"';
+				memcpy(temp_ptr, resource_temp_ptr->resource_parameters_ptr->resource_type_ptr, resource_temp_ptr->resource_parameters_ptr->resource_type_len);
+				temp_ptr += resource_temp_ptr->resource_parameters_ptr->resource_type_len;
+				*temp_ptr++ = '"';
+			}
+
+			if(resource_temp_ptr->resource_parameters_ptr->interface_description_len)
+			{
+				*temp_ptr++ = ';';
+				memcpy(temp_ptr, if_description_parameter, IF_PARAMETER_LEN);
+				temp_ptr += IF_PARAMETER_LEN;
+				*temp_ptr++ = '"';
+				memcpy(temp_ptr, resource_temp_ptr->resource_parameters_ptr->interface_description_ptr, resource_temp_ptr->resource_parameters_ptr->interface_description_len);
+				temp_ptr += resource_temp_ptr->resource_parameters_ptr->interface_description_len;
+				*temp_ptr++ = '"';
+			}
+
+			if(resource_temp_ptr->resource_parameters_ptr->coap_content_type != 0)
+			{
+				*temp_ptr++ = ';';
+				memcpy(temp_ptr, coap_con_type_parameter, COAP_CON_PARAMETER_LEN);
+				temp_ptr += COAP_CON_PARAMETER_LEN;
+				*temp_ptr++ = '"';
+				temp_ptr = sn_nsdl_itoa(temp_ptr, resource_temp_ptr->resource_parameters_ptr->coap_content_type);
+				*temp_ptr++ = '"';
+			}
+
+			/* ;obs */
+			if(resource_temp_ptr->resource_parameters_ptr->observable)
+			{
+				*temp_ptr++ = ';';
+				memcpy(temp_ptr, obs_parameter, OBS_PARAMETER_LEN);
+				temp_ptr += OBS_PARAMETER_LEN;
+			}
+
+			/* ;aobs;id= */
+			/* todo: aosb not supported ATM - needs fixing */
+			/*
+			if((resource_temp_ptr->resource_parameters_ptr->auto_obs_len > 0 && resource_temp_ptr->resource_parameters_ptr->auto_obs_len <= 8) &&
+					resource_temp_ptr->resource_parameters_ptr->auto_obs_ptr)
+			{
+				uint8_t i = 0;
+
+				*temp_ptr++ = ';';
+				memcpy(temp_ptr, aobs_parameter, AOBS_PARAMETER_LEN);
+				temp_ptr += AOBS_PARAMETER_LEN;
+
+				while(i < resource_temp_ptr->resource_parameters_ptr->auto_obs_len)
+				{
+					temp_ptr = sn_nsdl_itoa(temp_ptr, *(resource_temp_ptr->resource_parameters_ptr->auto_obs_ptr + i));
+					i++;
+				}
+			}
+			*/
+
+		}
+
+		resource_temp_ptr = sn_grs_get_next_resource();
+
+	}
+
+	return SN_NSDL_SUCCESS;
+}
+
+/**
+ * \fn static uint16_t sn_nsdl_calculate_registration_body_size(sn_grs_resource_list_s *grs_resources_list_ptr)
+ *
+ *
+ * \brief	Calculates registration message payload size
+ *
+ * \param	*grs_resources_list_ptr Pointer to list of GRS resources
+ *
+ * \return	Needed payload size
+ */
+static uint16_t sn_nsdl_calculate_registration_body_size(uint8_t updating_registeration)
+{
+	/* Local variables */
+	uint16_t return_value = 0;
+	sn_nsdl_resource_info_s *resource_temp_ptr;
+
+	/* check pointer */
+
+	resource_temp_ptr = sn_grs_get_first_resource();
+
+	while(resource_temp_ptr)
+	{
+
+		if(resource_temp_ptr->resource_parameters_ptr)
+		{
+
+			if(updating_registeration && resource_temp_ptr->resource_parameters_ptr->registered == SN_NDSL_RESOURCE_REGISTERED)
+			{
+				resource_temp_ptr = sn_grs_get_next_resource();
+				continue;
+			}
+
+			/* If not first resource, then '.' will be added */
+			if(return_value)
+				return_value++;
+
+			/* Count length for the resource path </path> */
+			return_value +=	(3 + resource_temp_ptr->pathlen);
+
+			/* Count lengths of the attributes */
+
+			/* Resource type parameter */
+			if(resource_temp_ptr->resource_parameters_ptr->resource_type_len)
+			{
+				/* ;rt="restype" */
+				return_value += (6 + resource_temp_ptr->resource_parameters_ptr->resource_type_len);
+			}
+
+			/* Interface description parameter */
+			if(resource_temp_ptr->resource_parameters_ptr->interface_description_len)
+			{
+				/* ;if="iftype" */
+				return_value += (6 + resource_temp_ptr->resource_parameters_ptr->interface_description_len);
+			}
+
+			if(resource_temp_ptr->resource_parameters_ptr->coap_content_type != 0)
+			{
+				/* ;if="content" */
+				return_value += 6; // all but not content
+				return_value += sn_nsdl_itoa_len(resource_temp_ptr->resource_parameters_ptr->coap_content_type);
+			}
+
+			if(resource_temp_ptr->resource_parameters_ptr->observable)
+			{
+				/* ;obs */
+				return_value += 4;
+			}
+			/*todo: aobs not supported ATM - needs fixing*/
+			/*
+			if((resource_temp_ptr->resource_parameters_ptr->auto_obs_len > 0 && resource_temp_ptr->resource_parameters_ptr->auto_obs_len <= 8) &&
+					resource_temp_ptr->resource_parameters_ptr->auto_obs_ptr)
+			{
+				uint8_t i = resource_temp_ptr->resource_parameters_ptr->auto_obs_len;
+				// ;aobs;id=
+				return_value += 9;
+				while(i--)
+				{
+					return_value += sn_nsdl_itoa_len(*(resource_temp_ptr->resource_parameters_ptr->auto_obs_ptr + i));
+				}
+			}
+			*/
+
+		}
+
+		resource_temp_ptr = sn_grs_get_next_resource();
+
+	}
+
+	return return_value;
+
+}
+
+/**
+ * \fn static uint8_t sn_nsdl_calculate_uri_query_option_len(sn_nsdl_ep_parameters_s *endpoint_info_ptr, uint8_t msg_type)
+ *
+ *
+ * \brief Calculates needed uri query option length
+ *
+ * \param *endpoint_info_ptr 	Pointer to endpoint info structure
+ * \param msg_type				Message type
+ *
+ * \return	SN_NSDL_SUCCESS = 0, Failed = -1
+ */
+static uint8_t sn_nsdl_calculate_uri_query_option_len(sn_nsdl_ep_parameters_s *endpoint_info_ptr, uint8_t msg_type)
+{
+	uint8_t return_value = 0;
+	uint8_t number_of_parameters = 0;
+
+
+	if((endpoint_info_ptr->endpoint_name_len != 0) && (msg_type == SN_NSDL_EP_REGISTER_MESSAGE) && endpoint_info_ptr->endpoint_name_ptr != 0)
+	{
+		return_value += endpoint_info_ptr->endpoint_name_len;
+		return_value += 3;						//ep= should use sizeof here, very subtle packet truncation bug
+		number_of_parameters++;
+	}
+
+	// XXX Domain
+	if((endpoint_info_ptr->domain_name_len != 0) && (msg_type == SN_NSDL_EP_REGISTER_MESSAGE) && endpoint_info_ptr->domain_name_ptr != 0)
+	{
+		return_value += endpoint_info_ptr->domain_name_len;
+		return_value += DOMAIN_PARAMETERS_LEN;
+		number_of_parameters++;
+	}
+
+	if((endpoint_info_ptr->type_len != 0) && (endpoint_info_ptr->type_ptr != 0))
+	{
+		return_value+=endpoint_info_ptr->type_len;
+		return_value += 3;
+		number_of_parameters++;
+	}
+
+	if((endpoint_info_ptr->lifetime_len != 0) && (endpoint_info_ptr->lifetime_ptr != 0))
+	{
+		return_value+=endpoint_info_ptr->lifetime_len;
+		return_value += 3;
+		number_of_parameters++;
+	}
+
+	if(number_of_parameters != 0)
+		return_value += (number_of_parameters - 1);
+
+	return return_value;
+}
+
+/**
+ * \fn static int8_t sn_nsdl_fill_uri_query_options(sn_nsdl_ep_parameters_s *parameter_ptr, sn_coap_hdr_s *source_msg_ptr, uint8_t msg_type)
+ *
+ *
+ * \brief Fills uri-query options to message header struct
+ *
+ * \param *parameter_ptr 	Pointer to endpoint parameters struct
+ * \param *source_msg_ptr	Pointer to CoAP header struct
+ * \param msg_type			Message type
+ *
+ * \return	SN_NSDL_SUCCESS = 0, Failed = -1
+ */
+static int8_t sn_nsdl_fill_uri_query_options(sn_nsdl_ep_parameters_s *parameter_ptr, sn_coap_hdr_s *source_msg_ptr, uint8_t msg_type)
+{
+	uint8_t *temp_ptr = NULL;
+	source_msg_ptr->options_list_ptr->uri_query_len  = sn_nsdl_calculate_uri_query_option_len(parameter_ptr, msg_type);
+
+	if(source_msg_ptr->options_list_ptr->uri_query_len == 0)
+		return 0;
+
+	source_msg_ptr->options_list_ptr->uri_query_ptr 	= 	sn_nsdl_alloc(source_msg_ptr->options_list_ptr->uri_query_len);
+
+	if (source_msg_ptr->options_list_ptr->uri_query_ptr == NULL)
+			return SN_NSDL_FAILURE;
+
+	temp_ptr = source_msg_ptr->options_list_ptr->uri_query_ptr;
+
+	/******************************************************/
+	/* If endpoint name is configured, fill needed fields */
+	/******************************************************/
+
+	if((parameter_ptr->endpoint_name_len != 0) && (parameter_ptr->endpoint_name_ptr != 0) && (msg_type == SN_NSDL_EP_REGISTER_MESSAGE))
+	{
+		/* fill endpoint name, first ?ep=, then endpoint name */
+		memcpy(temp_ptr, ep_name_parameter_string, sizeof(ep_name_parameter_string));
+		temp_ptr += EP_NAME_PARAMETERS_LEN;
+		memcpy(temp_ptr, parameter_ptr->endpoint_name_ptr, parameter_ptr->endpoint_name_len);
+		temp_ptr += parameter_ptr->endpoint_name_len;
+	}
+
+	// XXX Domain
+
+	/******************************************************/
+	/*   If domain name is configured, fill needed fields */
+	/******************************************************/
+
+	if((parameter_ptr->domain_name_len != 0) && (parameter_ptr->domain_name_ptr != 0) && (msg_type == SN_NSDL_EP_REGISTER_MESSAGE))
+	{
+		if(temp_ptr != source_msg_ptr->options_list_ptr->uri_query_ptr)
+			*temp_ptr++ = '&';
+
+		/* then, next we fill domain name, add a d=, then domain name */
+		memcpy(temp_ptr, domain_parameter_string, sizeof(domain_parameter_string));
+		temp_ptr += DOMAIN_PARAMETERS_LEN;
+		memcpy(temp_ptr, parameter_ptr->domain_name_ptr, parameter_ptr->domain_name_len);
+		temp_ptr += parameter_ptr->domain_name_len;
+	}
+
+	/******************************************************/
+	/* If endpoint type is configured, fill needed fields */
+	/******************************************************/
+
+	if((parameter_ptr->type_len != 0) && (parameter_ptr->type_ptr != 0))
+	{
+		if(temp_ptr != source_msg_ptr->options_list_ptr->uri_query_ptr)
+			*temp_ptr++ = '&';
+
+		memcpy(temp_ptr, ep_type_parameter_string, sizeof(ep_type_parameter_string));
+		temp_ptr += EP_TYPE_PARAMETER_LEN;
+		memcpy(temp_ptr, parameter_ptr->type_ptr, parameter_ptr->type_len);
+		temp_ptr += parameter_ptr->type_len;
+	}
+
+
+	/******************************************************/
+	/* If lifetime is configured, fill needed fields */
+	/******************************************************/
+
+	if((parameter_ptr->lifetime_len != 0) && (parameter_ptr->lifetime_ptr != 0))
+	{
+		if(temp_ptr != source_msg_ptr->options_list_ptr->uri_query_ptr)
+			*temp_ptr++ = '&';
+
+		memcpy(temp_ptr, ep_lifetime_parameter, sizeof(ep_lifetime_parameter));
+		temp_ptr += LT_PARAMETER_LEN;
+		memcpy(temp_ptr, parameter_ptr->lifetime_ptr, parameter_ptr->lifetime_len);
+		temp_ptr += parameter_ptr->lifetime_len;// why does the last char of lifetime get cut off (only on reg, not on update)?
+	}
+
+//FIXME need to add domain to query options
+
+	return SN_NSDL_SUCCESS;
+}
+
+/**
+ * \fn static uint8_t sn_nsdl_local_rx_function(sn_coap_hdr_s *coap_packet_ptr, sn_nsdl_addr_s *address_ptr)
+ *
+ * \brief If received message is reply for the message that NSDL has been sent, it is processed here. Else, packet will be sent to application.
+ *
+ * \param *coap_packet_ptr	Pointer to received CoAP packet
+ * \param *address_ptr		Pointer to source address struct
+ *
+ * \return		SN_NSDL_SUCCESS = 0, Failed = -1
+ */
+static int8_t sn_nsdl_local_rx_function(sn_coap_hdr_s *coap_packet_ptr, sn_nsdl_addr_s *address_ptr)
+{
+	int8_t 						status = 0;
+	uint16_t					number_of_messages;
+	sn_nsdl_sent_messages_s 	*sent_message_temp_ptr;
+
+	if((coap_packet_ptr == 0) || (address_ptr == 0))
+		return -1;
+
+	/* If we wait for a response to some message.. */
+	number_of_messages = sn_linked_list_count_nodes(message_list_ptr);
+
+	if(number_of_messages)
+	{
+		while(number_of_messages--)
+		{
+			sent_message_temp_ptr = sn_linked_list_get_last_node(message_list_ptr);
+
+			if(sent_message_temp_ptr)
+			{
+				if(sent_message_temp_ptr->msg_id_number == coap_packet_ptr->msg_id)
+				{
+					switch(sent_message_temp_ptr->message_type)
+					{
+					case SN_NSDL_MSG_REGISTER:
+						if(coap_packet_ptr->msg_code == COAP_MSG_CODE_RESPONSE_CREATED)
+						{
+							sn_nsdl_endpoint_registered = SN_NSDL_ENDPOINT_IS_REGISTERED;
+							sn_nsdl_mark_resources_as_registered();
+							status = sn_nsdl_resolve_ep_information(coap_packet_ptr);
+							if(status != SN_NSDL_SUCCESS)
+							{
+								/* Node can be removed */
+								sn_nsdl_free(sent_message_temp_ptr);
+								sn_linked_list_remove_current_node(message_list_ptr);
+								return status;
+							}
+						}
+						break;
+					case SN_NSDL_MSG_UNREGISTER:
+						if(coap_packet_ptr->msg_code == COAP_MSG_CODE_RESPONSE_DELETED)
+						{
+							if(ep_information_ptr->endpoint_name_ptr)
+								{
+									sn_nsdl_free(ep_information_ptr->endpoint_name_ptr);
+									ep_information_ptr->endpoint_name_ptr = 0;
+									ep_information_ptr->endpoint_name_len = 0;
+								}
+
+							if(ep_information_ptr->domain_name_ptr)
+								{
+									sn_nsdl_free(ep_information_ptr->domain_name_ptr);
+									ep_information_ptr->domain_name_ptr = 0;
+									ep_information_ptr->domain_name_len = 0;
+								}
+
+						}
+						break;
+					case SN_NSDL_MSG_EVENT:
+					case SN_NSDL_MSG_UPDATE:
+						break;
+					}
+					/* Node can be removed */
+					sn_nsdl_free(sent_message_temp_ptr);
+					sn_linked_list_remove_current_node(message_list_ptr);
+
+					sn_nsdl_rx_callback(coap_packet_ptr, address_ptr);
+					return SN_NSDL_SUCCESS;
+				}
+			}
+			sent_message_temp_ptr = sn_linked_list_get_previous_node(message_list_ptr);
+		}
+	}
+
+	/* No messages to wait for, or message was not response to our request */
+	status = sn_nsdl_rx_callback(coap_packet_ptr, address_ptr);
+
+	return status;
+}
+
+void sn_nsdl_mark_resources_as_registered(void)
+{
+
+	sn_nsdl_resource_info_s *temp_resource;
+
+	temp_resource = sn_grs_get_first_resource();
+
+	while(temp_resource)
+	{
+
+		if(temp_resource->resource_parameters_ptr->registered == SN_NDSL_RESOURCE_REGISTERING)
+		{
+
+			temp_resource->resource_parameters_ptr->registered = SN_NDSL_RESOURCE_REGISTERED;
+
+		}
+
+		temp_resource = sn_grs_get_next_resource();
+
+	}
+
+
+}
+
+/**
+ * \fn static int8_t sn_nsdl_resolve_ep_information(sn_coap_hdr_s *coap_packet_ptr)
+ *
+ *
+ * \brief Resolves endpoint information from received CoAP message
+ *
+ * \param *coap_packet_ptr Pointer to received CoAP message
+ *
+ * \return	SN_NSDL_SUCCESS = 0, Failed = -1
+ */
+static int8_t sn_nsdl_resolve_ep_information(sn_coap_hdr_s *coap_packet_ptr)
+{
+	uint8_t		*temp_ptr;
+	uint8_t		parameter_count 	= 0;
+	uint16_t	parameter_len 		= 0;
+	uint16_t	location_path_len	= 0;
+
+	if(!coap_packet_ptr)
+		return SN_NSDL_FAILURE;
+	if(!coap_packet_ptr->options_list_ptr)
+		return SN_NSDL_FAILURE;
+	if(!coap_packet_ptr->options_list_ptr->location_path_ptr)
+		return SN_NSDL_FAILURE;
+
+	temp_ptr = coap_packet_ptr->options_list_ptr->location_path_ptr;
+
+	while(temp_ptr <= (coap_packet_ptr->options_list_ptr->location_path_ptr + coap_packet_ptr->options_list_ptr->location_path_len))
+	{
+
+		if((temp_ptr == (coap_packet_ptr->options_list_ptr->location_path_ptr + coap_packet_ptr->options_list_ptr->location_path_len)) || (*temp_ptr == '/'))
+		{
+//FIXME need to count parameters before guessing about meanings, e.g. 1 parameter = location, 2 = /rd/location, 3 = /rd/domain/location
+			parameter_count++;
+			if(parameter_count == 2)
+			{
+				if(!ep_information_ptr->domain_name_ptr)
+				{
+					ep_information_ptr->domain_name_len = parameter_len - 1;
+					ep_information_ptr->domain_name_ptr = sn_nsdl_alloc(ep_information_ptr->domain_name_len);
+					if(!ep_information_ptr->domain_name_ptr)
+						return SN_NSDL_FAILURE;
+					memcpy(ep_information_ptr->domain_name_ptr, temp_ptr - ep_information_ptr->domain_name_len, ep_information_ptr->domain_name_len);
+				}
+
+			}
+			if(parameter_count == 3)
+			{
+				if(!ep_information_ptr->endpoint_name_ptr)
+				{
+					ep_information_ptr->endpoint_name_len = parameter_len - 1;
+					ep_information_ptr->endpoint_name_ptr = sn_nsdl_alloc(ep_information_ptr->endpoint_name_len);
+					if(!ep_information_ptr->endpoint_name_ptr)
+					{
+						if(ep_information_ptr->domain_name_ptr)
+						{
+							sn_nsdl_free(ep_information_ptr->domain_name_ptr);
+							ep_information_ptr->domain_name_ptr = NULL;
+							ep_information_ptr->domain_name_len = 0;
+						}
+
+						return SN_NSDL_FAILURE;
+
+					}
+					memcpy(ep_information_ptr->endpoint_name_ptr, temp_ptr - ep_information_ptr->endpoint_name_len, ep_information_ptr->endpoint_name_len);
+				}
+			}
+			parameter_len = 0;
+		}
+		location_path_len++;
+		parameter_len++;
+		temp_ptr++;
+	}
+	// capture the entire location path for registration updates
+	ep_registration_location_len = location_path_len -1;
+	ep_registration_location_ptr = sn_nsdl_alloc(ep_registration_location_len);
+	if(!ep_registration_location_ptr)
+		return SN_NSDL_FAILURE;
+	memcpy(ep_registration_location_ptr, (temp_ptr-1) - ep_registration_location_len, ep_registration_location_len);
+
+	return SN_NSDL_SUCCESS;
+}
+
+/**
+ * \fn int8_t set_NSP_address(uint8_t *NSP_address, uint16_t port, sn_nsdl_addr_type_e address_type)
+ * \brief This function is used to set the NSP address given by an application.
+ * \param uint8_t *NSP_address Pointer to NSP address Note! IPv6 address must always be 16 bytes long and IPv4 address must always be 4 bytes long!
+ * \param uint16_t port NSP port
+ * \param sn_nsdl_addr_type_e address_type NSP address type (SN_NSDL_ADDRESS_TYPE_IPV6 or SN_NSDL_ADDRESS_TYPE_IPV4)
+ * \return 0 on success, -1 on false to indicate that NSDL internal address pointer is not allocated (call nsdl_init() first).
+ *
+ */
+int8_t set_NSP_address(uint8_t *NSP_address, uint16_t port, sn_nsdl_addr_type_e address_type)
+{
+
+	/* Check parameters and source pointers */
+	if(!nsp_address_ptr || !NSP_address)
+	{
+		return -1;
+	}
+
+	nsp_address_ptr->type = address_type;
+
+	if(address_type == SN_NSDL_ADDRESS_TYPE_IPV4)
+	{
+		if(nsp_address_ptr->addr_ptr)
+		{
+			sn_nsdl_free(nsp_address_ptr->addr_ptr);
+		}
+
+		nsp_address_ptr->addr_len = 4;
+
+		nsp_address_ptr->addr_ptr = sn_nsdl_alloc(nsp_address_ptr->addr_len);
+		if(!nsp_address_ptr->addr_ptr)
+			return -1;
+
+		memcpy(nsp_address_ptr->addr_ptr, NSP_address, nsp_address_ptr->addr_len);
+		nsp_address_ptr->port = port;
+	}
+
+	else if(address_type == SN_NSDL_ADDRESS_TYPE_IPV6)
+	{
+		if(nsp_address_ptr->addr_ptr)
+		{
+			sn_nsdl_free(nsp_address_ptr->addr_ptr);
+		}
+
+		nsp_address_ptr->addr_len = 16;
+
+		nsp_address_ptr->addr_ptr = sn_nsdl_alloc(nsp_address_ptr->addr_len);
+		if(!nsp_address_ptr->addr_ptr)
+			return -1;
+
+		memcpy(nsp_address_ptr->addr_ptr, NSP_address, nsp_address_ptr->addr_len);
+		nsp_address_ptr->port = port;
+	}
+	return 0;
+}
+
+
+static uint8_t sn_nsdl_itoa_len(uint8_t value)
+{
+	uint8_t i = 0;
+
+	do
+	{
+		i++;
+	}while((value /= 10) > 0);
+
+	return i;
+}
+
+static uint8_t *sn_nsdl_itoa(uint8_t *ptr, uint8_t value)
+{
+
+	uint8_t start = 0;
+	uint8_t end = 0;
+	uint8_t i;
+
+	i = 0;
+
+	/* ITOA */
+	do
+	{
+		ptr[i++] = (value % 10) + '0';
+	}while((value /= 10) > 0);
+
+	end = i - 1;
+
+	/* reverse (part of ITOA) */
+	while(start < end)
+	{
+		uint8_t chr;
+
+		chr = ptr[start];
+		ptr[start] = ptr[end];
+		ptr[end] = chr;
+
+		start++;
+		end--;
+
+	}
+	return (ptr + i);
+}
+

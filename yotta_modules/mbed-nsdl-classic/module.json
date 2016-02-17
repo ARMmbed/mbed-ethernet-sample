@@ -1,0 +1,17 @@
+{
+  "name": "mbed-nsdl-classic",
+  "version": "1.0.0",
+  "description": "NSDL",
+  "keywords": [],
+  "author": "",
+  "homepage": "https://github.com/ARMmbed/mbed-nsdl-classic",
+  "licenses": [
+    {
+      "url": "https://spdx.org/licenses/Apache-2.0",
+      "type": "Apache-2.0"
+    }
+  ],
+  "dependencies": {
+    "mbed-endpoint-network-ble": "~1.0.0"
+  }
+}

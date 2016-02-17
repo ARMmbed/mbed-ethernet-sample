@@ -24,11 +24,12 @@
 #define __TEMPERATURE_RESOURCE_H__
 
 // Base class
-#include "DynamicResource.h"
+#include "mbed-connector-interface/DynamicResource.h"
 
 // our Temperature sensor
-#include "LM75B.h"
-LM75B temp_sensor(D14,D15);
+// #include "LM75B.h"
+//LM75B temp_sensor(D14,D15);
+int my_temp = 10;
 
 /** TemperatureResource class
  */
@@ -38,10 +39,11 @@ public:
     /**
     Default constructor
     @param logger input logger instance for this resource
-    @param name input the Temperature resource name
+    @param obj_name input the Temperature Object name
+    @param res_name input the Temperature Resource name
     @param observable input the resource is Observable (default: FALSE)
     */
-    TemperatureResource(const Logger *logger,const char *name,const bool observable = false) : DynamicResource(logger,name,"Temperature",SN_GRS_GET_ALLOWED,observable) {
+    TemperatureResource(const Logger *logger,const char *obj_name,const char *res_name,const bool observable = false) : DynamicResource(logger,obj_name,res_name,"Temperature",M2MBase::GET_ALLOWED,observable) {
     }
 
     /**
@@ -51,7 +53,8 @@ public:
     virtual string get() {
         char temp[7];
         memset(temp,0,7);
-        sprintf(temp,"%3.2f", temp_sensor.temp());
+        sprintf(temp,"%d", my_temp); // temp_sensor.temp());
+        my_temp += 1;
         return string(temp);
     }
 };

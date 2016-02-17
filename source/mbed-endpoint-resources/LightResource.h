@@ -24,7 +24,7 @@
 #define __LIGHT_RESOURCE_H__
 
 // Base class
-#include "DynamicResource.h"
+#include "mbed-connector-interface/DynamicResource.h"
 
 // our Light sensor
 DigitalOut  __light(LED3);
@@ -42,10 +42,11 @@ public:
     /**
     Default constructor
     @param logger input logger instance for this resource
-    @param name input the Light resource name
+    @param obj_name input the Light Object name
+    @param res_name input the Light Resource name
     @param observable input the resource is Observable (default: FALSE)
     */
-    LightResource(const Logger *logger,const char *name,const bool observable = false) : DynamicResource(logger,name,"Light",SN_GRS_GET_ALLOWED|SN_GRS_PUT_ALLOWED,observable) {
+    LightResource(const Logger *logger,const char *obj_name,const char *res_name,const bool observable = false) : DynamicResource(logger,obj_name,res_name,"Light",M2MBase::GET_PUT_POST_ALLOWED,observable) {
     }
 
     /**
@@ -63,6 +64,15 @@ public:
     @param string input the string containing "0" (light off) or "1" (light on)
     */
     virtual void put(const string value) {
+        if (value.compare(string(OFF)) == 0) __light = 0;
+        else __light = 1;
+    }
+    
+    /**
+    Set the value of the Light
+    @param string input the string containing "0" (light off) or "1" (light on)
+    */
+    virtual void post(const string value) {
         if (value.compare(string(OFF)) == 0) __light = 0;
         else __light = 1;
     }

@@ -1,6 +1,6 @@
 /**
  * @file    main.cpp
- * @brief   mbed Connected Home Endpoint main entry point
+ * @brief   mbed Endpoint Sample main
  * @author  Doug Anson
  * @version 1.0
  * @see
@@ -20,58 +20,56 @@
  * limitations under the License.
  */
 
-// mbed Connector Interface (configuration)
-#include "mbedConnectorInterface.h"
+// Include security.h
+#include "security.h"
 
 // mbed Endpoint Network
-#include "mbedEndpointNetwork.h"
+#include "mbed-connector-interface/mbedEndpointNetwork.h"
 
-// Static Resources
-#include "StaticResource.h"
-StaticResource mfg(&logger,"dev/mfg","FRDM-K64F");
-StaticResource model(&logger,"dev/mdl","mbed Ethernet node");
+// Logger
+#include "mbed-connector-interface/Logger.h"
+Serial pc(USBTX,USBRX);
+Logger logger(&pc);
 
-//
-// Dynamic Resource Note:
-//
-//  mbedConnectorInterface supports up to IPT_MAX_ENTRIES 
-//  (currently 5) independent dynamic resources.
-//
-//  You can increase this (at the cost of memory) 
-//  in mbedConnectorinterface.h
-//
+// Device Resources
+#include "mbed-connector-interface/DeviceResource.h"
+DeviceResource mfg(&logger,M2MDevice::Manufacturer,"Freescale");
+DeviceResource dev_type(&logger,M2MDevice::DeviceType,"FRDM");
+DeviceResource model(&logger,M2MDevice::ModelNumber,"K64F");
+DeviceResource serial(&logger,M2MDevice::SerialNumber,"0123456789");
+
+// Sample Static Resource
+#include "mbed-connector-interface/StaticResource.h"
+StaticResource static_sample(&logger,"Test","S","hello mbed");
 
 // Sample Dynamic Resource
-#include "SampleDynamicResource.h"
-SampleDynamicResource sample(&logger,"999/999/9999");
+#include "mbed-endpoint-resources/SampleDynamicResource.h"
+SampleDynamicResource dynamic_sample(&logger,"Test","D");
 
 // Light Resource
-#include "LightResource.h"
-LightResource light(&logger,"311/0/5850");
+#include "mbed-endpoint-resources/LightResource.h"
+LightResource light(&logger,"311","5850");
 
 // Temperature Resource
-#include "TemperatureResource.h"
-TemperatureResource temperature(&logger,"303/0/5700",true);         // "true" --> resource is observable
+#include "mbed-endpoint-resources/TemperatureResource.h"
+TemperatureResource temperature(&logger,"303","5700",true);         					// "true" --> resource is observable
 
-// My Endpoint Name
-#define MY_ENDPOINT_NAME                        "mbed-eth-endpoint"
-
-// My NSP Domain
-#define MY_NSP_DOMAIN                           "domain"   
-
-// Customization Example: My custom NSP IPv4 address and NSP CoAP port 
-uint8_t my_nsp_address[NSP_IP_ADDRESS_LENGTH] = {129,41,135,57};       // connector (api.connector.mbed.org)
-int my_nsp_coap_port                          = 5683;
+// Custom Connector URL and Port number for CoAP...
+char *connector_url = (char *)"coap://api.connector.mbed.com:5684";           		// connector (api.connector.mbed.org)
 
 // called from the Endpoint::start() below to create resources and the endpoint internals...
 Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
 {    
     // Build the endpoint configuration parameters
     logger.log("configure_endpoint: building endpoint configuration...");
-    return config.setEndpointNodename(MY_ENDPOINT_NAME)                   // custom endpoint name
-                 .setNSPAddress(my_nsp_address)                           // custom NSP address
-                 .setDomain(MY_NSP_DOMAIN)                                // custom NSP domain
-                 .setNSPPortNumber(my_nsp_coap_port)                      // custom NSP CoAP port
+    return config.setEndpointNodename(MBED_ENDPOINT_NAME)                    // custom endpoint name (security.h)
+                 .setDomain(MBED_DOMAIN)                                							   // custom NSP domain (security.h)
+                 .setConnectorURL(connector_url)                          							   // custom Connector URL
+                 
+                 // set the Security Credentials (from security.h)
+                 .setServerCertificate((uint8_t *)SERVER_CERT,(int)sizeof(SERVER_CERT))
+                 .setClientCertificate((uint8_t *)CERT,(int)sizeof(CERT))
+                 .setClientKey((uint8_t *)KEY,(int)sizeof(KEY))
                  
                  // enable or disable(default) immediate observationing control
                  .setImmedateObservationEnabled(true)
@@ -79,31 +77,38 @@ Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
                  // enable or disable(default) GET-based observation control
                  .setEnableGETObservationControl(false)
                  
-                 // add the static resource representing this endpoint
+                 // add Device Resources
                  .addResource(&mfg)
+                 .addResource(&dev_type)
                  .addResource(&model)
+                 .addResource(&serial)
                  
                  // add a Sample Dynamic Resource
-                 .addResource(&sample)
+                 .addResource(&static_sample)
+                 
+                 // add a Sample Dynamic Resource
+                 .addResource(&dynamic_sample)
                    
                  // Add my specific physical dynamic resources...
                  .addResource(&light)
-                 .addResource(&temperature,5000)        // observe every 20 seconds - use threaded observer 
+                 .addResource(&temperature,20000)    // observe every 20 seconds
                    
                  // finalize the configuration...
                  .build();
 }
 
 // main entry point...
-int main()
+void app_start(int, char *[])
 {
+	// set Serial
+	pc.baud(115200);
+	
     // Announce
-    logger.log("\r\n\r\nmbed mDS Sample Endpoint v1.0 (Ethernet-Observe)");
-    
+    logger.log("\r\n\r\nmbed mDS Sample Endpoint v3.0 (Ethernet)");
+     
     // we have to plumb our network first
     Connector::Endpoint::plumbNetwork();
              
     // starts the endpoint by finalizing its configuration (configure_endpoint() above called),creating a Thread and reading NSP events...
-    logger.log("Start the endpoint to finish setup and enter the main loop...");
     Connector::Endpoint::start();
 }
