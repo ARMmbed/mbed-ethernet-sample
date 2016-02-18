@@ -28,7 +28,18 @@
 
 // our Temperature sensor
 #include "lm75b/lm75b.h"
-LM75B temp_sensor(D14,D15);
+LM75B __temp_sensor(D14,D15);
+
+// HACK until mbedOS sprintf() works with %f....
+static void __sprintf(char *result,int length,float f) {
+	int whole = 0;
+	int dec = 0;
+	whole = (int)f;
+	f = (f-whole)*100;
+	dec = (int)f;
+  	memset(result,0,length);
+  	sprintf(result,"%d.%d",whole,dec);
+}
 
 /** 
  * TemperatureResource class
@@ -51,10 +62,9 @@ public:
     @returns string containing the temperature sensor value
     */
     virtual string get() {
-        char temp[5];
-        memset(temp,0,5);
-        sprintf(temp,"%d", (int)temp_sensor.temp());
-        return string(temp);
+    	char buf[10];
+    	__sprintf(buf,10,__temp_sensor.temp());
+        return string(buf);
     }
 };
 

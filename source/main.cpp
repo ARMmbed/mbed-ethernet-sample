@@ -31,7 +31,7 @@
 Serial pc(USBTX,USBRX);
 Logger logger(&pc);
 
-// Device Resources
+// Our Device Resources
 #include "mbed-connector-interface/DeviceResource.h"
 DeviceResource mfg(&logger,M2MDevice::Manufacturer,"Freescale");
 DeviceResource dev_type(&logger,M2MDevice::DeviceType,"FRDM");
@@ -59,27 +59,23 @@ TemperatureResource temperature(&logger,"303","5700",true);         					// "tru
 AccelerometerResource accel(&logger,"888","7700",true);         						    // "true" --> resource is observable
 
 // Custom Connector URL and Port number for CoAP...
-char *connector_url = (char *)"coap://api.connector.mbed.com:5684";           		// connector (api.connector.mbed.org)
+char *connector_url = (char *)"coap://api.connector.mbed.com:5684";           		// mbed Device Connector URL and DTLS port number for CoAP
 
 // called from the Endpoint::start() below to create resources and the endpoint internals...
 Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
 {    
     // Build the endpoint configuration parameters
-    logger.log("configure_endpoint: building endpoint configuration...");
-    return config.setEndpointNodename(MBED_ENDPOINT_NAME)                    // custom endpoint name (security.h)
-                 .setDomain(MBED_DOMAIN)                                							   // custom NSP domain (security.h)
-                 .setConnectorURL(connector_url)                          							   // custom Connector URL
+    logger.log("Endpoint::Main: customizing endpoint configuration...");
+    return config
+    			 // our URL to mbed Device Connector
+    			 .setConnectorURL(connector_url)                          							
                  
-                 // set the Security Credentials (from security.h)
+                 // set the Security Credentials and endpoint node information (all from security.h)
+                 .setEndpointNodename(MBED_ENDPOINT_NAME)                    			
+                 .setDomain(MBED_DOMAIN)                                							  
                  .setServerCertificate((uint8_t *)SERVER_CERT,(int)sizeof(SERVER_CERT))
                  .setClientCertificate((uint8_t *)CERT,(int)sizeof(CERT))
                  .setClientKey((uint8_t *)KEY,(int)sizeof(KEY))
-                 
-                 // enable or disable(default) immediate observationing control
-                 .setImmedateObservationEnabled(true)
-                 
-                 // enable or disable(default) GET-based observation control
-                 .setEnableGETObservationControl(false)
                  
                  // add Device Resources
                  .addResource(&mfg)
@@ -87,15 +83,15 @@ Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
                  .addResource(&model)
                  .addResource(&serial)
                  
-                 // add a Sample Dynamic Resource
+                 // add a Sample Static Resource
                  .addResource(&static_sample)
                  
-                 // add a Sample Counter
+                 // add a Sample Counter (Dynamic Resource)
                  .addResource(&sample_counter,10000)			// observe every 10 seconds
                    
                  // Add my specific physical dynamic resources...
                  .addResource(&light)
-                 .addResource(&temperature,7500) 					// observe every 7.5 seconds
+                 .addResource(&temperature,8000) 					// observe every 8 seconds
                  .addResource(&accel)   							
                    
                  // finalize the configuration...
