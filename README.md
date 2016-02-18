@@ -1,2 +1,6 @@
 # mbed-ethernet-sample
-mbed ConnectorInterface Ethernet sample application for mbedOS
+
+mbed ConnectorInterface sample application for mbedOS
+
+Yotta Target: frdm-k64f-gcc
+Network: Ethernet

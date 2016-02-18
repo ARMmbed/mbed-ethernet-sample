@@ -1,14 +1,14 @@
 {
   "name": "mbed-ethernet-sample",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "bin": "./source",
   "private": true,
-  "description": "mbed ethernet sample for mbedConnectorInterface",
+  "description": "mbed ethernet sample (K64F) for mbedConnectorInterface",
   "author": "Doug Anson",
   "license": "Apache-2.0",
   "dependencies": {
     "mbed-client": "^1.2.16",
-    "mbed-connector-interface": "^1.0.0",
-    "mbed-endpoint-network-eth": "~0.1.0"
+    "mbed-connector-interface": "^1.1.0",
+    "mbed-endpoint-network-eth": "^1.0.0"
   }
 }

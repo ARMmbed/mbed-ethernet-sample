@@ -26,8 +26,8 @@
 // Base class
 #include "mbed-connector-interface/DynamicResource.h"
 
-// Put any physical abstractions here (i.e. DigitalOut, etc...). For this sample, its simply a string...
-string my_physical_resource("hello mbed");
+// We are a simple counter
+int _sample_counter = 0;
 
 /** SampleDynamicResource class
  */
@@ -42,7 +42,7 @@ public:
     @param res_name input the sample resource name
     @param observable input the resource is Observable (default: FALSE)
     */
-    SampleDynamicResource(const Logger *logger,const char *obj_name,const char *res_name,const bool observable = false) : DynamicResource(logger,obj_name,res_name,"SampleResource",M2MBase::GET_PUT_ALLOWED,observable) {
+    SampleDynamicResource(const Logger *logger,const char *obj_name,const char *res_name,const bool observable = false) : DynamicResource(logger,obj_name,res_name,"SampleResource",M2MBase::GET_ALLOWED,observable) {
     }
 
     /**
@@ -50,15 +50,11 @@ public:
     @returns string representing the current value of this resource
     */
     virtual string get() {
-        return my_physical_resource;
-    }
-
-    /**
-    Set the value of the Sample Resource
-    @param string input the new string value for this resource
-    */
-    virtual void put(const string value) {
-        my_physical_resource = value;
+    	char buf[7];
+    	memset(buf,0,7);
+    	sprintf(buf,"%d",_sample_counter);
+    	++_sample_counter;
+        return string(buf);
     }
 };
 

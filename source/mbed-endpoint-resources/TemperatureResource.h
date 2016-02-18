@@ -27,8 +27,8 @@
 #include "mbed-connector-interface/DynamicResource.h"
 
 // our Temperature sensor
-// #include "LM75B.h"
-//LM75B temp_sensor(D14,D15);
+// #include "lm75b/lm75b.h"
+// LM75B temp_sensor(D14,D15);
 int my_temp = 10;
 
 /** TemperatureResource class

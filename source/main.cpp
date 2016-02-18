@@ -40,19 +40,23 @@ DeviceResource serial(&logger,M2MDevice::SerialNumber,"0123456789");
 
 // Sample Static Resource
 #include "mbed-connector-interface/StaticResource.h"
-StaticResource static_sample(&logger,"Test","S","hello mbed");
+StaticResource static_sample(&logger,"101","1010","hello mbed");
 
-// Sample Dynamic Resource
+// Sample Dynamic Resource (a counter)
 #include "mbed-endpoint-resources/SampleDynamicResource.h"
-SampleDynamicResource dynamic_sample(&logger,"Test","D");
+SampleDynamicResource sample_counter(&logger,"123","4567",true);				// "true" -> resource is observable
 
 // Light Resource
 #include "mbed-endpoint-resources/LightResource.h"
 LightResource light(&logger,"311","5850");
 
 // Temperature Resource
-#include "mbed-endpoint-resources/TemperatureResource.h"
-TemperatureResource temperature(&logger,"303","5700",true);         					// "true" --> resource is observable
+//#include "mbed-endpoint-resources/TemperatureResource.h"
+//TemperatureResource temperature(&logger,"303","5700",true);         					// "true" --> resource is observable
+
+// Accelerometer Resource
+//#include "mbed-endpoint-resources/AcceleromterResource.h"
+//AcceleromterResource accel(&logger,"888","7700",true);         						    // "true" --> resource is observable
 
 // Custom Connector URL and Port number for CoAP...
 char *connector_url = (char *)"coap://api.connector.mbed.com:5684";           		// connector (api.connector.mbed.org)
@@ -86,12 +90,13 @@ Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
                  // add a Sample Dynamic Resource
                  .addResource(&static_sample)
                  
-                 // add a Sample Dynamic Resource
-                 .addResource(&dynamic_sample)
+                 // add a Sample Counter
+                 .addResource(&sample_counter,10000)			// observe every 10 seconds
                    
                  // Add my specific physical dynamic resources...
                  .addResource(&light)
-                 .addResource(&temperature,20000)    // observe every 20 seconds
+                 //.addResource(&temperature) 
+                 //.addResource(&accel)   							
                    
                  // finalize the configuration...
                  .build();
