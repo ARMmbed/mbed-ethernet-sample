@@ -27,11 +27,11 @@
 #include "mbed-connector-interface/DynamicResource.h"
 
 // our Temperature sensor
-// #include "lm75b/lm75b.h"
-// LM75B temp_sensor(D14,D15);
-int my_temp = 10;
+#include "lm75b/lm75b.h"
+LM75B temp_sensor(D14,D15);
 
-/** TemperatureResource class
+/** 
+ * TemperatureResource class
  */
 class TemperatureResource : public DynamicResource
 {
@@ -51,10 +51,9 @@ public:
     @returns string containing the temperature sensor value
     */
     virtual string get() {
-        char temp[7];
-        memset(temp,0,7);
-        sprintf(temp,"%d", my_temp); // temp_sensor.temp());
-        my_temp += 1;
+        char temp[5];
+        memset(temp,0,5);
+        sprintf(temp,"%d", (int)temp_sensor.temp());
         return string(temp);
     }
 };

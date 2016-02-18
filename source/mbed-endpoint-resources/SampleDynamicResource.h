@@ -27,7 +27,7 @@
 #include "mbed-connector-interface/DynamicResource.h"
 
 // We are a simple counter
-int _sample_counter = 0;
+static int _sample_counter = 0;
 
 /** SampleDynamicResource class
  */
@@ -42,7 +42,7 @@ public:
     @param res_name input the sample resource name
     @param observable input the resource is Observable (default: FALSE)
     */
-    SampleDynamicResource(const Logger *logger,const char *obj_name,const char *res_name,const bool observable = false) : DynamicResource(logger,obj_name,res_name,"SampleResource",M2MBase::GET_ALLOWED,observable) {
+    SampleDynamicResource(const Logger *logger,const char *obj_name,const char *res_name,const bool observable = false) : DynamicResource(logger,obj_name,res_name,"Counter",M2MBase::GET_ALLOWED,observable) {
     }
 
     /**

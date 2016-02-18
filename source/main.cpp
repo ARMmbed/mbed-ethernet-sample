@@ -51,12 +51,12 @@ SampleDynamicResource sample_counter(&logger,"123","4567",true);				// "true" ->
 LightResource light(&logger,"311","5850");
 
 // Temperature Resource
-//#include "mbed-endpoint-resources/TemperatureResource.h"
-//TemperatureResource temperature(&logger,"303","5700",true);         					// "true" --> resource is observable
+#include "mbed-endpoint-resources/TemperatureResource.h"
+TemperatureResource temperature(&logger,"303","5700",true);         					// "true" --> resource is observable
 
 // Accelerometer Resource
-//#include "mbed-endpoint-resources/AcceleromterResource.h"
-//AcceleromterResource accel(&logger,"888","7700",true);         						    // "true" --> resource is observable
+#include "mbed-endpoint-resources/AccelerometerResource.h"
+AccelerometerResource accel(&logger,"888","7700",true);         						    // "true" --> resource is observable
 
 // Custom Connector URL and Port number for CoAP...
 char *connector_url = (char *)"coap://api.connector.mbed.com:5684";           		// connector (api.connector.mbed.org)
@@ -95,8 +95,8 @@ Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
                    
                  // Add my specific physical dynamic resources...
                  .addResource(&light)
-                 //.addResource(&temperature) 
-                 //.addResource(&accel)   							
+                 .addResource(&temperature,7500) 					// observe every 7.5 seconds
+                 .addResource(&accel)   							
                    
                  // finalize the configuration...
                  .build();

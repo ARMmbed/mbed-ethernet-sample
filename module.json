@@ -1,6 +1,6 @@
 {
   "name": "mbed-ethernet-sample",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "bin": "./source",
   "private": true,
   "description": "mbed ethernet sample (K64F) for mbedConnectorInterface",
@@ -9,6 +9,8 @@
   "dependencies": {
     "mbed-client": "^1.2.16",
     "mbed-connector-interface": "^1.1.0",
-    "mbed-endpoint-network-eth": "^1.0.0"
+    "mbed-endpoint-network-eth": "^1.0.0",
+    "fxos8700cq": "^0.1.4",
+    "lm75b": "^0.1.1"
   }
 }
