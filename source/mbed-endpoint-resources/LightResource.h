@@ -46,7 +46,7 @@ public:
     @param res_name input the Light Resource name
     @param observable input the resource is Observable (default: FALSE)
     */
-    LightResource(const Logger *logger,const char *obj_name,const char *res_name,const bool observable = false) : DynamicResource(logger,obj_name,res_name,"Light",M2MBase::GET_PUT_POST_ALLOWED,observable) {
+    LightResource(const Logger *logger,const char *obj_name,const char *res_name,const bool observable = false) : DynamicResource(logger,obj_name,res_name,"Light",M2MBase::GET_PUT_ALLOWED,observable) {
     }
 
     /**
@@ -64,15 +64,6 @@ public:
     @param string input the string containing "0" (light off) or "1" (light on)
     */
     virtual void put(const string value) {
-        if (value.compare(string(OFF)) == 0) __light = 0;
-        else __light = 1;
-    }
-    
-    /**
-    Set the value of the Light
-    @param string input the string containing "0" (light off) or "1" (light on)
-    */
-    virtual void post(const string value) {
         if (value.compare(string(OFF)) == 0) __light = 0;
         else __light = 1;
     }
