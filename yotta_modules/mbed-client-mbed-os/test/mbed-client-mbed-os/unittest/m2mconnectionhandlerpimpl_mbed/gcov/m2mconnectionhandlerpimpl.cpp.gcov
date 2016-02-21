@@ -1,0 +1,387 @@
+        -:    0:Source:../../../../source/m2mconnectionhandlerpimpl.cpp
+        -:    0:Graph:objs/m2mconnectionhandlerimpl_mbed_unit/m2mconnectionhandlerpimpl.gcno
+        -:    0:Data:objs/m2mconnectionhandlerimpl_mbed_unit/m2mconnectionhandlerpimpl.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/*
+        -:    2: * Copyright (c) 2015 ARM Limited. All rights reserved.
+        -:    3: * SPDX-License-Identifier: Apache-2.0
+        -:    4: * Licensed under the Apache License, Version 2.0 (the License); you may
+        -:    5: * not use this file except in compliance with the License.
+        -:    6: * You may obtain a copy of the License at
+        -:    7: *
+        -:    8: * http://www.apache.org/licenses/LICENSE-2.0
+        -:    9: *
+        -:   10: * Unless required by applicable law or agreed to in writing, software
+        -:   11: * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+        -:   12: * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        -:   13: * See the License for the specific language governing permissions and
+        -:   14: * limitations under the License.
+        -:   15: */
+        -:   16:#include "mbed-client-mbed-os/m2mconnectionhandlerpimpl.h"
+        -:   17:#include "mbed-client/m2mconnectionobserver.h"
+        -:   18:#include "mbed-client/m2msecurity.h"
+        -:   19:#include "mbed-client/m2mconnectionhandler.h"
+        -:   20:
+        -:   21:using namespace mbed::Sockets::v0;
+        -:   22:
+       21:   23:M2MConnectionHandlerPimpl::M2MConnectionHandlerPimpl(M2MConnectionHandler* base, M2MConnectionObserver &observer,
+        -:   24:                                                     M2MConnectionSecurity* sec,
+        -:   25:                                                     M2MInterface::BindingMode mode,
+        -:   26:                                                     M2MInterface::NetworkStack stack)
+        -:   27::_base(base),
+        -:   28: _observer(observer),
+        -:   29: _security_impl(sec),
+        -:   30: _use_secure_connection(false),
+        -:   31: _binding_mode(mode),
+        -:   32: _network_stack(stack),
+        -:   33: _resolved_Address(new SocketAddr()),
+        -:   34: _resolved(true),
+        -:   35: _socket_stack(SOCKET_STACK_UNINIT),
+       21:   36: _is_handshaking(false)
+        -:   37:{
+       21:   38:    _socket_address = (M2MConnectionObserver::SocketAddress *)malloc(sizeof(M2MConnectionObserver::SocketAddress));
+       21:   39:    memset(_socket_address, 0, sizeof(M2MConnectionObserver::SocketAddress));
+       21:   40:    _socket_address->_address = _received_address;
+        -:   41:
+       21:   42:    socket_address_family_t socket_family = SOCKET_AF_INET4;
+        -:   43:
+       21:   44:    switch(_network_stack) {
+        -:   45:        case M2MInterface::Uninitialized:
+       16:   46:            _socket_stack = SOCKET_STACK_UNINIT;
+       16:   47:            break;
+        -:   48:        case M2MInterface::LwIP_IPv4:
+        1:   49:            _socket_stack = SOCKET_STACK_LWIP_IPV4;
+        1:   50:            break;
+        -:   51:        case M2MInterface::LwIP_IPv6:
+        1:   52:            _socket_stack = SOCKET_STACK_LWIP_IPV6;
+        1:   53:            socket_family = SOCKET_AF_INET6;
+        1:   54:            break;
+        -:   55:        case M2MInterface::Reserved:
+        1:   56:            _socket_stack = SOCKET_STACK_RESERVED;
+        1:   57:            break;
+        -:   58:        case M2MInterface::Nanostack_IPv6:
+        1:   59:            _socket_stack = SOCKET_STACK_NANOSTACK_IPV6;
+        1:   60:            socket_family = SOCKET_AF_INET6;
+        1:   61:            break;
+        -:   62:        case M2MInterface::Unknown:
+        1:   63:            _socket_stack = SOCKET_STACK_MAX;
+        1:   64:            break;
+        -:   65:        default:
+    #####:   66:            break;
+        -:   67:    }
+        -:   68:
+       21:   69:    memset(_receive_buffer,0,sizeof(_receive_buffer));
+        -:   70:
+        -:   71:    //TODO: select socket_address_family based on Network stack
+       42:   72:    if(_binding_mode == M2MInterface::TCP ||
+       21:   73:       _binding_mode == M2MInterface::TCP_QUEUE ){
+        1:   74:        _mbed_socket = new MbedSocket(_socket_stack, SOCKET_STREAM);
+        1:   75:        _mbed_socket->open(socket_family, SOCKET_STREAM);
+        -:   76:    }else{
+       20:   77:        _mbed_socket = new MbedSocket(_socket_stack, SOCKET_DGRAM);
+       20:   78:        _mbed_socket->open(socket_family, SOCKET_DGRAM);
+        -:   79:    }
+        -:   80:
+       21:   81:    _mbed_socket->setOnSent(MbedSocket::SentHandler_t(this, &M2MConnectionHandlerPimpl::send_handler));
+       21:   82:    _mbed_socket->setOnError(MbedSocket::ErrorHandler_t(this, &M2MConnectionHandlerPimpl::error_handler));
+       21:   83:}
+        -:   84:
+       42:   85:M2MConnectionHandlerPimpl::~M2MConnectionHandlerPimpl()
+        -:   86:{
+       21:   87:    if(_resolved_Address) {
+       21:   88:        delete _resolved_Address;
+       21:   89:        _resolved_Address = NULL;
+        -:   90:    }
+       21:   91:    if(_mbed_socket) {
+       21:   92:        delete _mbed_socket;
+       21:   93:        _mbed_socket = NULL;
+        -:   94:    }
+       21:   95:    if(_socket_address) {
+       21:   96:        free(_socket_address);
+        -:   97:    }
+        -:   98:
+       21:   99:    delete _security_impl;
+       21:  100:}
+        -:  101:
+        2:  102:bool M2MConnectionHandlerPimpl::bind_connection(const uint16_t listen_port)
+        -:  103:{
+        -:  104:    //TODO: Use bind in mbed Socket
+        2:  105:    socket_error_t err = SOCKET_ERROR_NONE;
+        2:  106:    if(_mbed_socket) {
+        2:  107:        if(_network_stack == M2MInterface::LwIP_IPv4) {
+        1:  108:            err = _mbed_socket->bind("0.0.0.0", listen_port);
+        1:  109:        } else if(_network_stack == M2MInterface::Nanostack_IPv6) {
+        1:  110:            err = _mbed_socket->bind("0:0:0:0:0:0:0:0", listen_port);
+        -:  111:        }
+        -:  112:    }
+        2:  113:    return SOCKET_ERROR_NONE == err;
+        -:  114:}
+        -:  115:
+        1:  116:bool M2MConnectionHandlerPimpl::resolve_server_address(const String& server_address,
+        -:  117:                                                      const uint16_t server_port,
+        -:  118:                                                      M2MConnectionObserver::ServerType server_type,
+        -:  119:                                                      const M2MSecurity* security)
+        -:  120:{
+        1:  121:    _security = security;
+        1:  122:    socket_error_t err = SOCKET_ERROR_NONE;
+        1:  123:    if(_resolved) {
+        1:  124:        _resolved = false;
+        1:  125:        _server_address = server_address;
+        1:  126:        _server_port = server_port;
+        1:  127:        _server_type = server_type;
+        -:  128:
+        -:  129:        err = _mbed_socket->resolve(_server_address.c_str(),
+        1:  130:                               MbedSocket::DNSHandler_t(this, &M2MConnectionHandlerPimpl::dns_handler));
+        -:  131:    }
+        1:  132:    return SOCKET_ERROR_NONE == err;
+        -:  133:}
+        -:  134:
+        5:  135:bool M2MConnectionHandlerPimpl::send_data(uint8_t *data,
+        -:  136:                                     uint16_t data_len,
+        -:  137:                                     sn_nsdl_addr_s *address)
+        -:  138:{
+        5:  139:    if( address == NULL || data == NULL){
+        1:  140:        return false;
+        -:  141:    }
+        4:  142:    socket_error_t error = SOCKET_ERROR_NONE;
+        4:  143:    if( _use_secure_connection ){
+        2:  144:        if( _security_impl->send_message(data, data_len) > 0){
+        1:  145:            error = SOCKET_ERROR_NONE;
+        -:  146:        }else{
+        1:  147:            error = SOCKET_ERROR_UNKNOWN;
+        -:  148:        }
+        -:  149:    }else{
+        3:  150:        if(_binding_mode == M2MInterface::TCP ||
+        1:  151:           _binding_mode == M2MInterface::TCP_QUEUE){
+        -:  152:            //We need to "shim" the length in front
+        1:  153:            uint16_t d_len = data_len+4;
+        1:  154:            uint8_t* d = (uint8_t*)malloc(data_len+4);
+        -:  155:
+        1:  156:            d[0] = (data_len >> 24 )& 0xff;
+        1:  157:            d[1] = (data_len >> 16 )& 0xff;
+        1:  158:            d[2] = (data_len >> 8 )& 0xff;
+        1:  159:            d[3] = data_len & 0xff;
+        1:  160:            memmove(d+4, data, data_len);
+        1:  161:            error = _mbed_socket->send(d, d_len);
+        1:  162:            free(d);
+        -:  163:        }else{
+        1:  164:            error = _mbed_socket->send_to(data, data_len,_resolved_Address,_server_port);
+        -:  165:        }
+        -:  166:    }
+        4:  167:    return SOCKET_ERROR_NONE == error;
+        -:  168:}
+        -:  169:
+        1:  170:void M2MConnectionHandlerPimpl::send_handler(Socket */*socket*/, uint16_t /*data_sent*/)
+        -:  171:{
+        1:  172:    _observer.data_sent();
+        1:  173:}
+        -:  174:
+        1:  175:bool M2MConnectionHandlerPimpl::start_listening_for_data()
+        -:  176:{
+        -:  177:    // Boolean return required for other platforms,
+        -:  178:    // not needed in mbed Socket.
+        1:  179:    _mbed_socket->setOnReadable(MbedSocket::ReadableHandler_t(this, &M2MConnectionHandlerPimpl::receive_handler));
+        1:  180:    return true;
+        -:  181:}
+        -:  182:
+        1:  183:void M2MConnectionHandlerPimpl::stop_listening()
+        -:  184:{
+        -:  185:
+        1:  186:}
+        -:  187:
+        5:  188:int M2MConnectionHandlerPimpl::send_to_socket(const unsigned char *buf, size_t len)
+        -:  189:{
+        5:  190:    socket_error_t error = SOCKET_ERROR_NONE;
+        9:  191:    if(_binding_mode == M2MInterface::TCP ||
+        4:  192:       _binding_mode == M2MInterface::TCP_QUEUE){
+        2:  193:        error = _mbed_socket->send(buf, len);
+        -:  194:    }else{
+        3:  195:        error = _mbed_socket->send_to(buf, len,_resolved_Address,_server_port);
+        -:  196:    }
+        -:  197:
+        5:  198:    if( SOCKET_ERROR_WOULD_BLOCK == error ){
+        1:  199:        return M2MConnectionHandler::CONNECTION_ERROR_WANTS_WRITE;
+        4:  200:    }else if( SOCKET_ERROR_NONE != error ){
+        1:  201:        return -1;
+        -:  202:    }else{
+        3:  203:        return len;
+        -:  204:    }
+        -:  205:
+        -:  206:}
+        -:  207:
+        5:  208:int M2MConnectionHandlerPimpl::receive_from_socket(unsigned char *buf, size_t len)
+        -:  209:{
+        -:  210:    socket_error_t error;
+        9:  211:    if(_binding_mode == M2MInterface::TCP ||
+        4:  212:       _binding_mode == M2MInterface::TCP_QUEUE){
+        2:  213:        error = _mbed_socket->recv(buf, &len);
+        -:  214:    }else{
+        -:  215:        SocketAddr remote_address;
+        -:  216:        uint16_t remote_port;
+        3:  217:        error = _mbed_socket->recv_from(buf, &len,&remote_address,&remote_port);
+        -:  218:    }
+        -:  219:
+        -:  220:
+        5:  221:    if( SOCKET_ERROR_WOULD_BLOCK == error ){
+        1:  222:        return M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ;
+        4:  223:    }else if( SOCKET_ERROR_NONE != error ){
+        1:  224:        return -1;
+        -:  225:    }else{
+        3:  226:        return len;
+        -:  227:    }
+        -:  228:}
+        -:  229:
+        3:  230:void M2MConnectionHandlerPimpl::receive_handshake_handler(Socket */*socket*/)
+        -:  231:{
+        3:  232:    memset(_receive_buffer, 0, BUFFER_LENGTH);
+        3:  233:    if( _is_handshaking ){
+        3:  234:        int ret = _security_impl->continue_connecting();
+        3:  235:        if( ret == M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ ){ //We wait for next readable event
+        4:  236:            return;
+        2:  237:        } else if( ret == 0 ){
+        1:  238:            _is_handshaking = false;
+        1:  239:            _mbed_socket->setOnReadable(NULL);
+        1:  240:            _use_secure_connection = true;
+        -:  241:            _observer.address_ready(*_socket_address,
+        -:  242:                                    _server_type,
+        1:  243:                                    _server_port);
+        1:  244:        }else if( ret < 0 ){
+        -:  245:            //TODO: Socket error in SSL handshake,
+        -:  246:            // Define error code.
+        1:  247:            _is_handshaking = false;
+        1:  248:            _mbed_socket->setOnReadable(NULL);
+        1:  249:            _observer.socket_error(4);
+        -:  250:        }
+        -:  251:    }
+        -:  252:}
+        -:  253:
+       11:  254:void M2MConnectionHandlerPimpl::receive_handler(Socket */*socket*/)
+        -:  255:{
+       11:  256:    memset(_receive_buffer, 0, BUFFER_LENGTH);
+       11:  257:    size_t receive_length = sizeof(_receive_buffer);
+        -:  258:
+       11:  259:    if( _use_secure_connection ){
+        4:  260:        int rcv_size = _security_impl->read(_receive_buffer, receive_length);
+        4:  261:        if(rcv_size >= 0){
+        -:  262:            _observer.data_available((uint8_t*)_receive_buffer,
+        2:  263:                                     rcv_size, *_socket_address);
+        2:  264:        } else if (M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ != rcv_size) {
+        1:  265:            _observer.socket_error(1);
+        2:  266:            return;
+        -:  267:        }
+        -:  268:    }else{
+        7:  269:        socket_error_t error = SOCKET_ERROR_NONE;
+       13:  270:        if(_binding_mode == M2MInterface::TCP ||
+        6:  271:           _binding_mode == M2MInterface::TCP_QUEUE){
+        3:  272:            error = _mbed_socket->recv(_receive_buffer, &receive_length);
+        -:  273:        }else{
+        -:  274:            SocketAddr remote_address;
+        -:  275:            uint16_t remote_port;
+        4:  276:            error = _mbed_socket->recv_from(_receive_buffer, &receive_length,&remote_address,&remote_port);
+        -:  277:        }
+        7:  278:        if (SOCKET_ERROR_NONE == error) {
+        -:  279:
+        6:  280:            memset(_socket_address,0,sizeof(M2MConnectionObserver::SocketAddress));
+        -:  281:
+        6:  282:            _socket_address->_address =_resolved_Address->getAddr()->ipv6be;
+        -:  283:            //TODO: Current support only for IPv4, add IPv6 support
+        6:  284:            if(_network_stack == M2MInterface::LwIP_IPv4) {
+        1:  285:                _socket_address->_length = 4;
+        5:  286:            } else if(_network_stack == M2MInterface::Nanostack_IPv6) {
+        5:  287:                _socket_address->_length = 16;
+        -:  288:            }
+        6:  289:            _socket_address->_port = _socket_address->_port;
+        6:  290:            _socket_address->_stack = _network_stack;
+        -:  291:            // Send data for processing.
+       11:  292:            if(_binding_mode == M2MInterface::TCP ||
+        5:  293:               _binding_mode == M2MInterface::TCP_QUEUE){
+        -:  294:                //We need to "shim" out the length from the front
+        3:  295:                if( receive_length > 4 ){
+        2:  296:                    uint64_t len = (_receive_buffer[0] << 24 & 0xFF000000) + (_receive_buffer[1] << 16 & 0xFF0000);
+        2:  297:                    len += (_receive_buffer[2] << 8 & 0xFF00) + (_receive_buffer[3] & 0xFF);
+        2:  298:                    if(len > 0) {
+        2:  299:                        uint8_t* buf = (uint8_t*)malloc(len);
+        2:  300:                        if(buf) {
+        2:  301:                            memmove(buf, _receive_buffer+4, len);
+        -:  302:                            // Observer for TCP plain mode
+        2:  303:                            _observer.data_available(buf,len,*_socket_address);
+        2:  304:                            free(buf);
+        -:  305:                        }
+        -:  306:                    }
+        -:  307:                }else{
+        1:  308:                    _observer.socket_error(1);
+        3:  309:                }
+        -:  310:            } else { // Observer for UDP plain mode
+        -:  311:                _observer.data_available((uint8_t*)_receive_buffer,
+        3:  312:                                         receive_length, *_socket_address);
+        -:  313:            }
+        -:  314:        } else {
+        -:  315:            // Socket error in receiving
+        1:  316:            _observer.socket_error(1);
+        -:  317:        }
+        -:  318:    }
+        -:  319:}
+        -:  320:
+        6:  321:void M2MConnectionHandlerPimpl::dns_handler(Socket */*socket*/, struct socket_addr sa, const char */*domain*/)
+        -:  322:{
+        6:  323:    _resolved = true;
+        6:  324:    memset(_socket_address,0,sizeof(M2MConnectionObserver::SocketAddress));
+        -:  325:
+        6:  326:    _resolved_Address->setAddr(&sa);
+        6:  327:    _socket_address->_address = sa.ipv6be;
+        -:  328:
+        6:  329:    if(_resolved_Address->is_v4()) {
+        1:  330:        _socket_address->_length = 4;
+        -:  331:    } else {
+        5:  332:        _socket_address->_length = 16;
+        -:  333:    }
+        6:  334:    _socket_address->_stack = _network_stack;
+        6:  335:    _socket_address->_port = _server_port;
+        -:  336:
+        9:  337:    if(_binding_mode == M2MInterface::TCP ||
+        3:  338:       _binding_mode == M2MInterface::TCP_QUEUE){
+        3:  339:        _mbed_socket->connect(_resolved_Address, _server_port);
+        -:  340:    }
+        -:  341:
+        6:  342:    if( _security ){
+       12:  343:        if( _security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Certificate ||
+        6:  344:           _security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Psk ){
+        6:  345:            if( _security_impl != NULL ){
+        2:  346:                _security_impl->reset();
+        2:  347:                _security_impl->init(_security);
+        2:  348:                _is_handshaking = true;
+        2:  349:                _mbed_socket->setOnReadable(MbedSocket::ReadableHandler_t(this, &M2MConnectionHandlerPimpl::receive_handshake_handler));
+        2:  350:                if( _security_impl->start_connecting_non_blocking(_base) < 0 ){
+        -:  351:                    //TODO: Socket error in SSL handshake,
+        -:  352:                    // Define error code.
+        1:  353:                    _is_handshaking = false;
+        1:  354:                    _mbed_socket->setOnReadable(NULL);
+        1:  355:                    _observer.socket_error(4);
+        7:  356:                    return;
+        -:  357:                }
+        -:  358:            }
+        -:  359:        }
+        -:  360:    }
+        5:  361:    if( !_is_handshaking ){
+        -:  362:        _observer.address_ready(*_socket_address,
+        -:  363:                                _server_type,
+        4:  364:                                _server_port);
+        -:  365:    }
+        -:  366:}
+        -:  367:
+        1:  368:void M2MConnectionHandlerPimpl::error_handler(Socket */*socket*/,
+        -:  369:                                              socket_error_t error)
+        -:  370:{
+        -:  371:    //TODO: Socket error in dns resolving,
+        -:  372:    // Define error code.
+        1:  373:    if(SOCKET_ERROR_NONE != error) {
+        1:  374:        _observer.socket_error(2);
+        -:  375:    }
+        1:  376:}
+        -:  377:
+        1:  378:void M2MConnectionHandlerPimpl::handle_connection_error(int /*error*/)
+        -:  379:{
+        -:  380:    //This will come from M2MConnectionSecurity class
+        1:  381:    _observer.socket_error(4);
+        1:  382:}

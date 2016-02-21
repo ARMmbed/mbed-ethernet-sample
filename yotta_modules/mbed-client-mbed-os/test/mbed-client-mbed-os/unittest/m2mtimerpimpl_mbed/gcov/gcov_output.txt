@@ -1,0 +1,8 @@
+File '../common/mbed-drivers/Ticker.h'
+Lines executed:100.00% of 3
+Creating 'Ticker.h.gcov'
+
+File '../../../../source/m2mtimerpimpl.cpp'
+Lines executed:100.00% of 67
+Creating 'm2mtimerpimpl.cpp.gcov'
+

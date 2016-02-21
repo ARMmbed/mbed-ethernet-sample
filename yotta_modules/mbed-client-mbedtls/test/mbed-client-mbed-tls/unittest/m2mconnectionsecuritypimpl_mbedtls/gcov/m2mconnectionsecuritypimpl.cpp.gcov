@@ -1,0 +1,420 @@
+        -:    0:Source:../../../../source/m2mconnectionsecuritypimpl.cpp
+        -:    0:Graph:objs/m2mconnectionsecuritypimpl_unit/m2mconnectionsecuritypimpl.gcno
+        -:    0:Data:objs/m2mconnectionsecuritypimpl_unit/m2mconnectionsecuritypimpl.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/*
+        -:    2: * Copyright (c) 2015 ARM Limited. All rights reserved.
+        -:    3: * SPDX-License-Identifier: Apache-2.0
+        -:    4: * Licensed under the Apache License, Version 2.0 (the License); you may
+        -:    5: * not use this file except in compliance with the License.
+        -:    6: * You may obtain a copy of the License at
+        -:    7: *
+        -:    8: * http://www.apache.org/licenses/LICENSE-2.0
+        -:    9: *
+        -:   10: * Unless required by applicable law or agreed to in writing, software
+        -:   11: * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+        -:   12: * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        -:   13: * See the License for the specific language governing permissions and
+        -:   14: * limitations under the License.
+        -:   15: */
+        -:   16:
+        -:   17:#include "mbed-client/m2mconnectionhandler.h"
+        -:   18:#include "mbed-client-mbedtls/m2mconnectionsecuritypimpl.h"
+        -:   19:#include "mbed-client/m2mtimer.h"
+        -:   20:#include "mbed-client/m2msecurity.h"
+        -:   21:#include <string.h>
+        -:   22:
+        -:   23:void mbedtls_timing_set_delay( void *data, uint32_t int_ms, uint32_t fin_ms );
+        -:   24:int mbedtls_timing_get_delay( void *data );
+        -:   25:int entropy_poll( void *data, unsigned char *output, size_t len, size_t *olen );
+        -:   26://Point these back to M2MConnectionHandler!!!
+        -:   27:int f_send( void *ctx, const unsigned char *buf, size_t len );
+        -:   28:int f_recv(void *ctx, unsigned char *buf, size_t len);
+        -:   29:int f_recv_timeout(void *ctx, unsigned char *buf, size_t len, uint32_t some);
+        -:   30:
+        -:   31:bool cancelled;
+        -:   32:
+       10:   33:M2MConnectionSecurityPimpl::M2MConnectionSecurityPimpl(M2MConnectionSecurity::SecurityMode mode)
+        -:   34:  : _flags(0),
+        -:   35:    _sec_mode(mode),
+       10:   36:    _is_blocking(false)
+        -:   37:{
+       10:   38:    _init_done = false;
+       10:   39:    cancelled = true;
+       10:   40:    _timmer = new M2MTimer(*this);
+       10:   41:    mbedtls_ssl_init( &_ssl );
+       10:   42:    mbedtls_ssl_config_init( &_conf );
+       10:   43:    mbedtls_x509_crt_init( &_cacert );
+       10:   44:    mbedtls_x509_crt_init(&_owncert);
+       10:   45:    mbedtls_pk_init(&_pkey);
+       10:   46:    mbedtls_ctr_drbg_init( &_ctr_drbg );
+       10:   47:    mbedtls_entropy_init( &_entropy );
+       10:   48:}
+        -:   49:
+       11:   50:M2MConnectionSecurityPimpl::~M2MConnectionSecurityPimpl(){
+       10:   51:    mbedtls_ssl_config_free(&_conf);
+       10:   52:    mbedtls_ssl_free(&_ssl);
+       10:   53:    mbedtls_x509_crt_free(&_cacert);
+       10:   54:    mbedtls_x509_crt_free(&_owncert);
+       10:   55:    mbedtls_pk_free(&_pkey);
+       10:   56:    mbedtls_ctr_drbg_free( &_ctr_drbg );
+       10:   57:    mbedtls_entropy_free( &_entropy );
+       10:   58:    delete _timmer;
+       11:   59:}
+        -:   60:
+        2:   61:void M2MConnectionSecurityPimpl::timer_expired(M2MTimerObserver::Type type){
+        2:   62:    if(type == M2MTimerObserver::Dtls && !cancelled && !_is_blocking){
+        1:   63:        int error = continue_connecting();
+        1:   64:        if(MBEDTLS_ERR_SSL_TIMEOUT == error) {
+        1:   65:            if(_ssl.p_bio) {
+        1:   66:                M2MConnectionHandler* ptr = (M2MConnectionHandler*)_ssl.p_bio;
+        1:   67:                ptr->handle_connection_error(4);
+        -:   68:            }
+        1:   69:        }
+        -:   70:    } else {
+        1:   71:        if(_ssl.p_bio) {
+        1:   72:            M2MConnectionHandler* ptr = (M2MConnectionHandler*)_ssl.p_bio;
+        1:   73:            ptr->handle_connection_error(4);
+        -:   74:        }
+        -:   75:    }
+        2:   76:}
+        -:   77:
+        1:   78:void M2MConnectionSecurityPimpl::reset(){
+        1:   79:    _init_done = false;
+        1:   80:    cancelled = true;
+        1:   81:    mbedtls_ssl_config_free(&_conf);
+        1:   82:    mbedtls_ssl_free(&_ssl);
+        1:   83:    mbedtls_x509_crt_free(&_cacert);
+        1:   84:    mbedtls_x509_crt_free(&_owncert);
+        1:   85:    mbedtls_pk_free(&_pkey);
+        1:   86:    mbedtls_ctr_drbg_free( &_ctr_drbg );
+        1:   87:    mbedtls_entropy_free( &_entropy );
+        1:   88:    _timmer->stop_timer();
+        1:   89:}
+        -:   90:
+       11:   91:int M2MConnectionSecurityPimpl::init(const M2MSecurity *security){
+       11:   92:    int ret=-1;
+       11:   93:    if( security != NULL ){
+       10:   94:        const char *pers = "dtls_client";
+       10:   95:        mbedtls_ssl_init( &_ssl );
+       10:   96:        mbedtls_ssl_config_init( &_conf );
+       10:   97:        mbedtls_x509_crt_init( &_cacert );
+       10:   98:        mbedtls_x509_crt_init(&_owncert);
+       10:   99:        mbedtls_pk_init(&_pkey);
+       10:  100:        mbedtls_ctr_drbg_init( &_ctr_drbg );
+        -:  101:
+       10:  102:        mbedtls_entropy_init( &_entropy );
+        -:  103:
+       10:  104:        uint8_t *serPub = 0;
+       10:  105:        uint32_t serPubSize = security->resource_value_buffer(M2MSecurity::ServerPublicKey, serPub);
+        -:  106:
+       10:  107:        uint8_t *pubCert = 0;
+       10:  108:        uint32_t pubCertSize = security->resource_value_buffer(M2MSecurity::PublicKey, pubCert);
+        -:  109:
+       10:  110:        uint8_t *secKey = 0;
+       10:  111:        uint32_t secKeySize = security->resource_value_buffer(M2MSecurity::Secretkey, secKey);
+        -:  112:
+        -:  113:
+       10:  114:        if( serPub == NULL || pubCert == NULL || secKey == NULL ||
+        9:  115:            serPubSize == 0 || pubCertSize == 0 || secKeySize == 0 ){
+        8:  116:            return -1;
+        -:  117:        }
+        -:  118:
+        -:  119:
+        9:  120:        if( mbedtls_entropy_add_source( &_entropy, entropy_poll, NULL,
+        9:  121:                                    128, 0 ) < 0 ){
+        1:  122:            free(serPub);
+        1:  123:            free(pubCert);
+        1:  124:            free(secKey);
+        1:  125:            return -1;
+        -:  126:        }
+        -:  127:
+        8:  128:        if( ( ret = mbedtls_ctr_drbg_seed( &_ctr_drbg, mbedtls_entropy_func, &_entropy,
+        -:  129:                                   (const unsigned char *) pers,
+        8:  130:                                   strlen( pers ) ) ) != 0 )
+        -:  131:        {
+        1:  132:            free(serPub);
+        1:  133:            free(pubCert);
+        1:  134:            free(secKey);
+        1:  135:            return -1;
+        -:  136:        }
+        -:  137:
+        7:  138:        int mode = MBEDTLS_SSL_TRANSPORT_DATAGRAM;
+        7:  139:        if( _sec_mode == M2MConnectionSecurity::TLS ){
+        7:  140:            mode = MBEDTLS_SSL_TRANSPORT_STREAM;
+        -:  141:        }
+        -:  142:
+        7:  143:        if( ( ret = mbedtls_ssl_config_defaults( &_conf,
+        -:  144:                           MBEDTLS_SSL_IS_CLIENT,
+        7:  145:                           mode, 0 ) ) != 0 )
+        -:  146:        {
+        1:  147:            free(serPub);
+        1:  148:            free(pubCert);
+        1:  149:            free(secKey);
+        1:  150:            return -1;
+        -:  151:        }
+        -:  152:
+        6:  153:        if( security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Certificate ){
+        -:  154:
+        -:  155:            ret = mbedtls_x509_crt_parse( &_cacert, (const unsigned char *) serPub,
+        4:  156:                                      serPubSize );
+        4:  157:            if( ret < 0 )
+        -:  158:            {
+        1:  159:                free(serPub);
+        1:  160:                free(pubCert);
+        1:  161:                free(secKey);
+        1:  162:                return -1;
+        -:  163:            }
+        -:  164:
+        -:  165:            ret = mbedtls_x509_crt_parse( &_owncert, (const unsigned char *) pubCert,
+        3:  166:                                      pubCertSize );
+        3:  167:            if( ret < 0 )
+        -:  168:            {
+        -:  169:
+        1:  170:                free(serPub);
+        1:  171:                free(pubCert);
+        1:  172:                free(secKey);
+        1:  173:                return -1;
+        -:  174:            }
+        -:  175:
+        2:  176:            ret = mbedtls_pk_parse_key(&_pkey, (const unsigned char *) secKey, secKeySize, NULL, 0);
+        2:  177:            free(serPub);
+        2:  178:            free(pubCert);
+        2:  179:            free(secKey);
+        -:  180:
+        2:  181:            if( ret < 0 )
+        -:  182:            {
+        1:  183:                return -1;
+        -:  184:            }
+        -:  185:
+        1:  186:            mbedtls_ssl_conf_own_cert(&_conf, &_owncert, &_pkey);
+        -:  187:            //TODO: use MBEDTLS_SSL_VERIFY_REQUIRED instead of optional
+        -:  188:            //MBEDTLS_SSL_VERIFY_NONE to test without verification (was MBEDTLS_SSL_VERIFY_OPTIONAL)
+        1:  189:            mbedtls_ssl_conf_authmode( &_conf, MBEDTLS_SSL_VERIFY_NONE );
+        1:  190:            mbedtls_ssl_conf_ca_chain( &_conf, &_cacert, NULL );
+        2:  191:        }else if(security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Psk ){
+        1:  192:            ret = mbedtls_ssl_conf_psk(&_conf, secKey, secKeySize, pubCert, pubCertSize);
+        1:  193:            mbedtls_ssl_conf_ciphersuites(&_conf, PSK_SUITES);
+        1:  194:            free(serPub);
+        1:  195:            free(pubCert);
+        1:  196:            free(secKey);
+        -:  197:        }else{
+        1:  198:            free(serPub);
+        1:  199:            free(pubCert);
+        1:  200:            free(secKey);
+        -:  201:        }
+        -:  202:
+        3:  203:        if( ret >= 0 ){
+        3:  204:            _init_done = true;
+        -:  205:        }
+        -:  206:    }
+        -:  207:
+        4:  208:    return ret;
+        -:  209:}
+        -:  210:
+       10:  211:int M2MConnectionSecurityPimpl::connect(M2MConnectionHandler* connHandler){
+       10:  212:    int ret=-1;
+       10:  213:    if(!_init_done){
+        1:  214:        return ret;
+        -:  215:    }
+        -:  216:
+        9:  217:    _is_blocking = true;
+        -:  218:
+        -:  219:    // This is for blocking sockets timeout happens once at 60 seconds
+        9:  220:    mbedtls_ssl_conf_handshake_timeout( &_conf, 60000, 61000 );
+        9:  221:    mbedtls_ssl_conf_rng( &_conf, mbedtls_ctr_drbg_random, &_ctr_drbg );
+        -:  222:
+        9:  223:    if( ( ret = mbedtls_ssl_setup( &_ssl, &_conf ) ) != 0 )
+        -:  224:    {
+        1:  225:       return -1;
+        -:  226:    }
+        -:  227:
+        -:  228:    //TODO: check is this needed
+        -:  229://    if( ( ret = mbedtls_ssl_set_hostname( &_ssl, "linux-secure-endpoint" ) ) != 0 )
+        -:  230://    {
+        -:  231://       return -1;
+        -:  232://    }
+        -:  233:
+        -:  234:    mbedtls_ssl_set_bio( &_ssl, connHandler,
+        8:  235:                        f_send, f_recv, f_recv_timeout );
+        -:  236:
+        -:  237:    mbedtls_ssl_set_timer_cb( &_ssl, _timmer, mbedtls_timing_set_delay,
+        8:  238:                                            mbedtls_timing_get_delay );
+        -:  239:
+        8:  240:    do ret = mbedtls_ssl_handshake( &_ssl );
+        8:  241:    while( ret == MBEDTLS_ERR_SSL_WANT_READ ||
+        -:  242:           ret == MBEDTLS_ERR_SSL_WANT_WRITE );
+        -:  243:
+        8:  244:    if( ret != 0 )
+        -:  245:    {
+        2:  246:        ret = -1;
+        -:  247:    }else{
+        6:  248:        if( ( _flags = mbedtls_ssl_get_verify_result( &_ssl ) ) != 0 )
+        -:  249:        {
+        4:  250:            ret = -1;
+        -:  251:        }
+        -:  252:    }
+        8:  253:    return ret;
+        -:  254:}
+        -:  255:
+        6:  256:int M2MConnectionSecurityPimpl::start_connecting_non_blocking(M2MConnectionHandler* connHandler)
+        -:  257:{
+        6:  258:    int ret=-1;
+        6:  259:    if(!_init_done){
+        1:  260:        return ret;
+        -:  261:    }
+        -:  262:
+        5:  263:    _is_blocking = false;
+        5:  264:    int mode = MBEDTLS_SSL_TRANSPORT_DATAGRAM;
+        5:  265:    if( _sec_mode == M2MConnectionSecurity::TLS ){
+        5:  266:        mode = MBEDTLS_SSL_TRANSPORT_STREAM;
+        -:  267:    }
+        -:  268:
+        5:  269:    if( ( ret = mbedtls_ssl_config_defaults( &_conf,
+        -:  270:                       MBEDTLS_SSL_IS_CLIENT,
+        5:  271:                       mode, 0 ) ) != 0 )
+        -:  272:    {
+        1:  273:        return -1;
+        -:  274:    }
+        -:  275:
+        -:  276:    // This is for non-blocking sockets total timeout is 1+2+4+8+16+29=60 seconds
+        4:  277:    mbedtls_ssl_conf_handshake_timeout( &_conf, 10000, 29000 );
+        4:  278:    mbedtls_ssl_conf_rng( &_conf, mbedtls_ctr_drbg_random, &_ctr_drbg );
+        -:  279:
+        4:  280:    if( ( ret = mbedtls_ssl_setup( &_ssl, &_conf ) ) != 0 )
+        -:  281:    {
+        1:  282:       return -1;
+        -:  283:    }
+        -:  284:
+        -:  285:    mbedtls_ssl_set_bio( &_ssl, connHandler,
+        3:  286:                        f_send, f_recv, f_recv_timeout );
+        -:  287:
+        -:  288:    mbedtls_ssl_set_timer_cb( &_ssl, _timmer, mbedtls_timing_set_delay,
+        3:  289:                                            mbedtls_timing_get_delay );
+        -:  290:
+        3:  291:    ret = mbedtls_ssl_handshake_step( &_ssl );
+        3:  292:    if( ret == 0 ){
+        2:  293:        ret = mbedtls_ssl_handshake_step( &_ssl );
+        -:  294:    }
+        -:  295:
+        3:  296:    if( ret >= 0){
+        1:  297:        ret = 1;
+        -:  298:    }else
+        -:  299:    {
+        2:  300:        ret = -1;
+        -:  301:    }
+        3:  302:    return ret;
+        -:  303:}
+        -:  304:
+        3:  305:int M2MConnectionSecurityPimpl::continue_connecting()
+        -:  306:{
+        3:  307:    int ret=-1;
+        7:  308:    while( ret != M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ){
+        3:  309:        ret = mbedtls_ssl_handshake_step( &_ssl );
+        3:  310:        if( MBEDTLS_ERR_SSL_WANT_READ == ret ){
+        1:  311:            ret = M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ;
+        -:  312:        }
+        3:  313:        if(MBEDTLS_ERR_SSL_TIMEOUT == ret ||
+        2:  314:           MBEDTLS_ERR_SSL_BAD_HS_SERVER_HELLO == ret ||
+        2:  315:           MBEDTLS_ERR_SSL_BAD_HS_CERTIFICATE == ret ||
+        2:  316:           MBEDTLS_ERR_SSL_BAD_HS_CERTIFICATE_REQUEST == ret ||
+        2:  317:           MBEDTLS_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE == ret ||
+        2:  318:           MBEDTLS_ERR_SSL_BAD_HS_SERVER_HELLO_DONE == ret ||
+        2:  319:           MBEDTLS_ERR_SSL_BAD_HS_CHANGE_CIPHER_SPEC == ret ||
+        -:  320:           MBEDTLS_ERR_SSL_BAD_HS_FINISHED == ret) {
+        1:  321:            return MBEDTLS_ERR_SSL_TIMEOUT;
+        -:  322:        }
+        2:  323:        if( _ssl.state == MBEDTLS_SSL_HANDSHAKE_OVER ){
+        1:  324:            return 0;
+        -:  325:        }
+        -:  326:    }
+        1:  327:    return ret;
+        -:  328:}
+        -:  329:
+        2:  330:int M2MConnectionSecurityPimpl::send_message(unsigned char *message, int len){
+        2:  331:    int ret=-1;
+        2:  332:    if(!_init_done){
+        1:  333:        return ret;
+        -:  334:    }
+        -:  335:
+        3:  336:    do ret = mbedtls_ssl_write( &_ssl, (unsigned char *) message, len );
+        2:  337:    while( ret == MBEDTLS_ERR_SSL_WANT_READ ||
+        -:  338:           ret == MBEDTLS_ERR_SSL_WANT_WRITE );
+        -:  339:
+        1:  340:    return ret; //bytes written
+        -:  341:}
+        -:  342:
+        2:  343:int M2MConnectionSecurityPimpl::read(unsigned char* buffer, uint16_t len){
+        2:  344:    int ret=-1;
+        2:  345:    if(!_init_done){
+        1:  346:        return 0;
+        -:  347:    }
+        -:  348:
+        1:  349:    memset( buffer, 0, len );
+        3:  350:    do ret = mbedtls_ssl_read( &_ssl, buffer, len-1 );
+        2:  351:    while( ret == MBEDTLS_ERR_SSL_WANT_READ ||
+        -:  352:           ret == MBEDTLS_ERR_SSL_WANT_WRITE );
+        -:  353:
+        1:  354:    return ret; //bytes read
+        -:  355:}
+        -:  356:
+        5:  357:int f_send( void *ctx, const unsigned char *buf, size_t len){
+        5:  358:    M2MConnectionHandler* handler = ((M2MConnectionHandler *) ctx);
+        5:  359:    return handler->send_to_socket(buf, len);
+        -:  360:}
+        -:  361:
+       10:  362:int f_recv(void *ctx, unsigned char *buf, size_t len){
+       10:  363:    M2MConnectionHandler* handler = ((M2MConnectionHandler *) ctx);
+       10:  364:    return handler->receive_from_socket(buf, len);
+        -:  365:}
+        -:  366:
+        5:  367:int f_recv_timeout(void *ctx, unsigned char *buf, size_t len, uint32_t /*some*/){
+        5:  368:    return f_recv(ctx, buf, len);
+        -:  369:}
+        -:  370:
+        9:  371:int entropy_poll( void *, unsigned char *output, size_t len,
+        -:  372:                           size_t *olen )
+        -:  373:{
+        9:  374:    srand(time(NULL));
+        9:  375:    char *c = (char*)malloc(len);
+        9:  376:    memset(c, 0, len);
+       18:  377:    for(uint16_t i=0; i < len; i++){
+        9:  378:        c[i] = rand() % 256;
+        -:  379:    }
+        9:  380:    memmove(output, c, len);
+        9:  381:    *olen = len;
+        -:  382:
+        9:  383:    free(c);
+        9:  384:    return( 0 );
+        -:  385:}
+        -:  386:
+       18:  387:void mbedtls_timing_set_delay( void *data, uint32_t int_ms, uint32_t fin_ms ){
+       18:  388:    M2MTimer* timer = (M2MTimer*) data;
+       18:  389:    if(!timer) {
+       20:  390:        return;
+        -:  391:    }
+       16:  392:    if( int_ms > 0 && fin_ms > 0 ){
+       10:  393:        cancelled = false;
+       10:  394:        timer->start_dtls_timer(int_ms, fin_ms);
+        -:  395:    }else{
+        6:  396:        cancelled = true;
+        6:  397:        timer->stop_timer();
+        -:  398:    }
+        -:  399:}
+        -:  400:
+       22:  401:int mbedtls_timing_get_delay( void *data ){
+       22:  402:    M2MTimer* timer = (M2MTimer*) data;
+       22:  403:    if(!timer){
+        2:  404:        return 0;
+        -:  405:    }
+       20:  406:    if(true == cancelled) {
+        6:  407:        return -1;
+       14:  408:    } else if( timer->is_total_interval_passed() ){
+        9:  409:        return 2;
+        5:  410:    }else if( timer->is_intermediate_interval_passed() ){
+        1:  411:        return 1;
+        -:  412:    }else{
+        4:  413:        return 0;
+        -:  414:    }
+        -:  415:}

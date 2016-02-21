@@ -1,0 +1,8 @@
+File '../../../../source/m2mconnectionsecuritypimpl.cpp'
+Lines executed:100.00% of 234
+Creating 'm2mconnectionsecuritypimpl.cpp.gcov'
+
+File '../../../../yotta_modules/mbed-client/mbed-client/m2mtimerobserver.h'
+Lines executed:100.00% of 1
+Creating 'm2mtimerobserver.h.gcov'
+

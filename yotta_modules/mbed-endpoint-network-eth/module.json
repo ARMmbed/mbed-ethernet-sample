@@ -1,0 +1,17 @@
+{
+  "name": "mbed-endpoint-network-eth",
+  "version": "1.0.3",
+  "description": "mbed Endpoint Network library for EthernetInterface",
+  "keywords": [
+    "mbedEndpointNetwork"
+  ],
+  "author": "Doug Anson",
+  "repository": {
+    "url": "https://github.com/ARMmbed/mbed-endpoint-network-eth.git",
+    "type": "git"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "mbed-client": "^1.4.0"
+  }
+}

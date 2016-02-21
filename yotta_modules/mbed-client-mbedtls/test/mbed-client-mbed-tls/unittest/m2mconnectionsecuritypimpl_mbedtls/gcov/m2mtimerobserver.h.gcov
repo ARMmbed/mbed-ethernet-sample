@@ -1,0 +1,53 @@
+        -:    0:Source:../../../../yotta_modules/mbed-client/mbed-client/m2mtimerobserver.h
+        -:    0:Graph:objs/m2mconnectionsecuritypimpl_unit/m2mconnectionsecuritypimpl.gcno
+        -:    0:Data:objs/m2mconnectionsecuritypimpl_unit/m2mconnectionsecuritypimpl.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/*
+        -:    2: * Copyright (c) 2015 ARM Limited. All rights reserved.
+        -:    3: * SPDX-License-Identifier: Apache-2.0
+        -:    4: * Licensed under the Apache License, Version 2.0 (the License); you may
+        -:    5: * not use this file except in compliance with the License.
+        -:    6: * You may obtain a copy of the License at
+        -:    7: *
+        -:    8: * http://www.apache.org/licenses/LICENSE-2.0
+        -:    9: *
+        -:   10: * Unless required by applicable law or agreed to in writing, software
+        -:   11: * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+        -:   12: * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        -:   13: * See the License for the specific language governing permissions and
+        -:   14: * limitations under the License.
+        -:   15: */
+        -:   16:#ifndef M2M_TIMER_OBSERVER_H
+        -:   17:#define M2M_TIMER_OBSERVER_H
+        -:   18:
+        -:   19:/**
+        -:   20: *  @brief M2MTimerObserver
+        -:   21: *  Observer class for indicating the timer expiry to the parent class.
+        -:   22: */
+       10:   23:class M2MTimerObserver
+        -:   24:{
+        -:   25:public:
+        -:   26:    /**
+        -:   27:      * @enum Defines the types of timer
+        -:   28:      * that can be created for mbed Client.
+        -:   29:      */
+        -:   30:    typedef enum {
+        -:   31:        Notdefined,
+        -:   32:        Registration,
+        -:   33:        NsdlExecution,
+        -:   34:        PMinTimer,
+        -:   35:        PMaxTimer,
+        -:   36:        Dtls,
+        -:   37:        QueueSleep
+        -:   38:    }Type;
+        -:   39:
+        -:   40:    /**
+        -:   41:    * Indicates that the time has expired.
+        -:   42:    * @param type, Type of timer that has expired.
+        -:   43:    */
+        -:   44:    virtual void timer_expired(M2MTimerObserver::Type type =
+        -:   45:                               M2MTimerObserver::Notdefined) = 0;
+        -:   46:};
+        -:   47:
+        -:   48:#endif // M2M_TIMER_OBSERVER_H

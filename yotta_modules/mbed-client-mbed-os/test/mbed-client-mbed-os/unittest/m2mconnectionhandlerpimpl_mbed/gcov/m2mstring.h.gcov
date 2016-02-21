@@ -1,0 +1,141 @@
+        -:    0:Source:../../../../yotta_modules/mbed-client/mbed-client/m2mstring.h
+        -:    0:Graph:objs/m2mconnectionhandlerimpl_mbed_unit/m2mconnectionhandlerpimpl.gcno
+        -:    0:Data:objs/m2mconnectionhandlerimpl_mbed_unit/m2mconnectionhandlerpimpl.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/*
+        -:    2: * Copyright (c) 2015 ARM Limited. All rights reserved.
+        -:    3: * SPDX-License-Identifier: Apache-2.0
+        -:    4: * Licensed under the Apache License, Version 2.0 (the License); you may
+        -:    5: * not use this file except in compliance with the License.
+        -:    6: * You may obtain a copy of the License at
+        -:    7: *
+        -:    8: * http://www.apache.org/licenses/LICENSE-2.0
+        -:    9: *
+        -:   10: * Unless required by applicable law or agreed to in writing, software
+        -:   11: * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+        -:   12: * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        -:   13: * See the License for the specific language governing permissions and
+        -:   14: * limitations under the License.
+        -:   15: */
+        -:   16:#ifndef M2M_STRING_H
+        -:   17:#define M2M_STRING_H
+        -:   18:
+        -:   19:#include <stddef.h> // size_t
+        -:   20:#include <stdexcept>
+        -:   21:#include <stdint.h>
+        -:   22:
+        -:   23:class Test_M2MString;
+        -:   24:
+        -:   25:namespace m2m
+        -:   26:{
+        -:   27:
+        -:   28:  /** @brief Simple C++ string class, used as replacement for
+        -:   29:   std::string.
+        -:   30:   */
+        -:   31:  class String
+        -:   32:  {
+        -:   33:    char*     p;           ///< The data
+        -:   34:    size_t    allocated_;  ///< The allocated memory size (including trailing NULL)
+        -:   35:    size_t    size_;       ///< The currently used memory size (excluding trailing NULL)
+        -:   36:
+        -:   37:  public:
+        -:   38:    typedef size_t size_type;
+        -:   39:    static const   size_type npos;
+        -:   40:
+        -:   41:    String();
+        -:   42:    virtual ~String();
+        -:   43:    String(const String&);
+        -:   44:    String(const char*);
+        -:   45:
+        -:   46:    String&  operator=(const char*);
+        -:   47:    String&  operator=(const String&);
+        -:   48:
+        -:   49:    String&  operator+=(const String&);
+        -:   50:    String&  operator+=(const char*);
+        -:   51:    String&  operator+=(char);
+        -:   52:    void     push_back(char);
+        -:   53:
+        -:   54:    //No need for this += is
+        -:   55:    //friend String operator+(const String& lhs, const String& rhs);
+        -:   56:
+        -:   57:    bool     operator==(const char*) const;
+        -:   58:    bool     operator==(const String&) const;
+        -:   59:
+        -:   60:    void     clear();       // set string to empty string (memory remains reserved)
+        -:   61:
+        -:   62:    size_type size()   const   { return size_; }   ///< size without terminating NULL
+        -:   63:    size_type length() const   { return size_; }   ///< as size()
+        -:   64:
+        -:   65:    /// size if fully used
+        -:   66:    size_type capacity() const { return allocated_-1; }
+        -:   67:
+        -:   68:    bool      empty() const    { return size_ == 0; }
+        -:   69:
+    #####:   70:    const char*  c_str() const { return p; } ///< raw data
+        -:   71:
+        -:   72:    /** Reserve internal string memory so that n characters can be put into the
+        -:   73:        string (plus 1 for the NULL char). If there is already enough memory,
+        -:   74:        nothing happens, if not, the memory will be realloated to exactly this
+        -:   75:        amount.
+        -:   76:        */
+        -:   77:    void reserve( size_type n);
+        -:   78:
+        -:   79:    /** Resize string. If n is less than the current size, the string will be truncated.
+        -:   80:        If n is larger, the memory will be reallocated to exactly this amount, and
+        -:   81:        the additional characters will be NULL characters.
+        -:   82:        */
+        -:   83:    void resize( size_type n);
+        -:   84:
+        -:   85:    /** Resize string. If n is less than the current size, the string will be truncated.
+        -:   86:        If n is larger, the memory will be reallocated to exactly this amount, and
+        -:   87:        the additional characters will be c characters.
+        -:   88:        */
+        -:   89:    void resize( size_type n, char c);
+        -:   90:
+        -:   91:    /// swap contents
+        -:   92:    void swap( String& );
+        -:   93:
+        -:   94:    String   substr(const size_type pos, size_type length) const;
+        -:   95:
+        -:   96:    // unchecked access:
+        -:   97:    char&    operator[](const size_type i)       { return p[i]; }
+        -:   98:    char     operator[](const size_type i) const { return p[i]; }
+        -:   99:    // checked access:
+        -:  100:    char&    at(const size_type i);
+        -:  101:    char     at(const size_type i) const;
+        -:  102:
+        -:  103:    /// erase len characters at position pos
+        -:  104:    String& erase(size_type pos, size_type len);
+        -:  105:    /// Append n characters of a string
+        -:  106:    String& append(const char* str, size_type n);
+        -:  107:
+        -:  108:    int     compare( size_type pos, size_type len, const String& str ) const;
+        -:  109:    int     compare( size_type pos, size_type len, const char*   str ) const;
+        -:  110:
+        -:  111:    int     find_last_of(char c) const;
+        -:  112:
+        -:  113:    static uint8_t* convert_integer_to_array(int64_t value, uint8_t &size);
+        -:  114:
+        -:  115:  private:
+        -:  116:    // reallocate the internal memory
+        -:  117:    void  new_realloc( size_type n);
+        -:  118:    char* strdup_never_null(const char* other);
+        -:  119:
+        -:  120:    char _return_value;
+        -:  121:
+        -:  122:    friend class ::Test_M2MString;
+        -:  123:
+        -:  124:  };
+        -:  125:  // class
+        -:  126:
+        -:  127:  bool
+        -:  128:  operator<(const String&, const String&);
+        -:  129:
+        -:  130:  void reverse(char s[], uint32_t length);
+        -:  131:
+        -:  132:  uint32_t itoa_c (int64_t n, char s[]);
+        -:  133:} // namespace
+        -:  134:
+        -:  135:
+        -:  136:#endif // M2M_STRING_H

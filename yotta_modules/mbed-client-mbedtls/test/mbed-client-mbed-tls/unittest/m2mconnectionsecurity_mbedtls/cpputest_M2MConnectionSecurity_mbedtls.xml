@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite errors="0" failures="0" hostname="localhost" name="M2MConnectionSecurity_mbedtls" tests="10" time="0.000" timestamp="Thu Feb 11 10:32:46 2016
+">
+<properties>
+</properties>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_read" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_send_message" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_continue_connecting" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_start_connecting_non_blocking" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_connect" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_init" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_reset" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_destructor" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="test_constructor" time="0.000">
+</testcase>
+<testcase classname="M2MConnectionSecurity_mbedtls" name="Create" time="0.000">
+</testcase>
+<system-out></system-out>
+<system-err></system-err>
+</testsuite>

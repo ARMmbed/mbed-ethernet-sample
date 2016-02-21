@@ -1,0 +1,227 @@
+warning: source ./yotta_modules is not a readable file or directory... skipping.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Compound mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Compound CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileLike.h:29: warning: Compound mbed::FileLike is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/source/FileSystemLike.cpp:20: warning: Compound mbed::BaseDirHandle is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CallChain.h:62: warning: Compound mbed::CallChain is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Compound mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FilePath.h:26: warning: Compound mbed::FilePath is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member CCallbackSimple)(void) (typedef) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member CCallback)(void *context) (typedef) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member CThunk(T *instance) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member CThunk(T *instance, CCallback callback) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member CThunk(T *instance, CCallbackSimple callback) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member CThunk(T &instance, CCallback callback) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member CThunk(T &instance, CCallbackSimple callback) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member CThunk(T &instance, CCallback callback, void *context) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member callback(CCallback callback) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member callback(CCallbackSimple callback) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member context(void *context) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member context(uint32_t context) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member entry(void) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member operator CThunkEntry(void) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member operator uint32_t(void) (function) of class CThunk is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CThunk.h:67: warning: Member call(void) (function) of class CThunk is not documented.
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/source/FileSystemLike.cpp:20: warning: Member n (variable) of class mbed::BaseDirHandle is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/source/FileSystemLike.cpp:20: warning: Member cur_entry (variable) of class mbed::BaseDirHandle is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Buffer.h:29: warning: Member Buffer(void *buf=NULL, size_t length=0) (function) of class mbed::Buffer is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Buffer.h:29: warning: Member buf (variable) of class mbed::Buffer is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Buffer.h:29: warning: Member length (variable) of class mbed::Buffer is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusIn.h:26: warning: Member BusIn(PinName pins[16]) (function) of class mbed::BusIn is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusIn.h:26: warning: Member _pin[16] (variable) of class mbed::BusIn is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusIn.h:31: warning: argument 'n' of command @param is not found in the argument list of mbed::BusIn::BusIn(PinName p0, PinName p1=NC, PinName p2=NC, PinName p3=NC, PinName p4=NC, PinName p5=NC, PinName p6=NC, PinName p7=NC, PinName p8=NC, PinName p9=NC, PinName p10=NC, PinName p11=NC, PinName p12=NC, PinName p13=NC, PinName p14=NC, PinName p15=NC)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusIn.h:33: warning: Unsupported xml/html tag <n> found
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusIn.h:39: warning: The following parameters of mbed::BusIn::BusIn(PinName p0, PinName p1=NC, PinName p2=NC, PinName p3=NC, PinName p4=NC, PinName p5=NC, PinName p6=NC, PinName p7=NC, PinName p8=NC, PinName p9=NC, PinName p10=NC, PinName p11=NC, PinName p12=NC, PinName p13=NC, PinName p14=NC, PinName p15=NC) are not documented:
+  parameter 'p0'
+  parameter 'p1'
+  parameter 'p2'
+  parameter 'p3'
+  parameter 'p4'
+  parameter 'p5'
+  parameter 'p6'
+  parameter 'p7'
+  parameter 'p8'
+  parameter 'p9'
+  parameter 'p10'
+  parameter 'p11'
+  parameter 'p12'
+  parameter 'p13'
+  parameter 'p14'
+  parameter 'p15'
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusIn.h:55: warning: argument 'mode' of command @param is not found in the argument list of mbed::BusIn::mode(PinMode pull)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusIn.h:59: warning: The following parameters of mbed::BusIn::mode(PinMode pull) are not documented:
+  parameter 'pull'
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:25: warning: Member BusInOut(PinName pins[16]) (function) of class mbed::BusInOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:25: warning: Member operator=(BusInOut &rhs) (function) of class mbed::BusInOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:25: warning: Member _pin[16] (variable) of class mbed::BusInOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:29: warning: argument 'p' of command @param is not found in the argument list of mbed::BusInOut::BusInOut(PinName p0, PinName p1=NC, PinName p2=NC, PinName p3=NC, PinName p4=NC, PinName p5=NC, PinName p6=NC, PinName p7=NC, PinName p8=NC, PinName p9=NC, PinName p10=NC, PinName p11=NC, PinName p12=NC, PinName p13=NC, PinName p14=NC, PinName p15=NC)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:29: warning: argument 'n' of command @param is not found in the argument list of mbed::BusInOut::BusInOut(PinName p0, PinName p1=NC, PinName p2=NC, PinName p3=NC, PinName p4=NC, PinName p5=NC, PinName p6=NC, PinName p7=NC, PinName p8=NC, PinName p9=NC, PinName p10=NC, PinName p11=NC, PinName p12=NC, PinName p13=NC, PinName p14=NC, PinName p15=NC)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:37: warning: The following parameters of mbed::BusInOut::BusInOut(PinName p0, PinName p1=NC, PinName p2=NC, PinName p3=NC, PinName p4=NC, PinName p5=NC, PinName p6=NC, PinName p7=NC, PinName p8=NC, PinName p9=NC, PinName p10=NC, PinName p11=NC, PinName p12=NC, PinName p13=NC, PinName p14=NC, PinName p15=NC) are not documented:
+  parameter 'p0'
+  parameter 'p1'
+  parameter 'p2'
+  parameter 'p3'
+  parameter 'p4'
+  parameter 'p5'
+  parameter 'p6'
+  parameter 'p7'
+  parameter 'p8'
+  parameter 'p9'
+  parameter 'p10'
+  parameter 'p11'
+  parameter 'p12'
+  parameter 'p13'
+  parameter 'p14'
+  parameter 'p15'
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:70: warning: argument 'mode' of command @param is not found in the argument list of mbed::BusInOut::mode(PinMode pull)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:74: warning: The following parameters of mbed::BusInOut::mode(PinMode pull) are not documented:
+  parameter 'pull'
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:79: warning: parameters of member mbed::BusInOut::operator= are not (all) documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusInOut.h:79: warning: return type of member mbed::BusInOut::operator= is not documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:25: warning: Member BusOut(PinName pins[16]) (function) of class mbed::BusOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:25: warning: Member operator=(BusOut &rhs) (function) of class mbed::BusOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:25: warning: Member _pin[16] (variable) of class mbed::BusOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:29: warning: argument 'p' of command @param is not found in the argument list of mbed::BusOut::BusOut(PinName p0, PinName p1=NC, PinName p2=NC, PinName p3=NC, PinName p4=NC, PinName p5=NC, PinName p6=NC, PinName p7=NC, PinName p8=NC, PinName p9=NC, PinName p10=NC, PinName p11=NC, PinName p12=NC, PinName p13=NC, PinName p14=NC, PinName p15=NC)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:29: warning: argument 'n' of command @param is not found in the argument list of mbed::BusOut::BusOut(PinName p0, PinName p1=NC, PinName p2=NC, PinName p3=NC, PinName p4=NC, PinName p5=NC, PinName p6=NC, PinName p7=NC, PinName p8=NC, PinName p9=NC, PinName p10=NC, PinName p11=NC, PinName p12=NC, PinName p13=NC, PinName p14=NC, PinName p15=NC)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:31: warning: Unsupported xml/html tag <n> found
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:37: warning: The following parameters of mbed::BusOut::BusOut(PinName p0, PinName p1=NC, PinName p2=NC, PinName p3=NC, PinName p4=NC, PinName p5=NC, PinName p6=NC, PinName p7=NC, PinName p8=NC, PinName p9=NC, PinName p10=NC, PinName p11=NC, PinName p12=NC, PinName p13=NC, PinName p14=NC, PinName p15=NC) are not documented:
+  parameter 'p0'
+  parameter 'p1'
+  parameter 'p2'
+  parameter 'p3'
+  parameter 'p4'
+  parameter 'p5'
+  parameter 'p6'
+  parameter 'p7'
+  parameter 'p8'
+  parameter 'p9'
+  parameter 'p10'
+  parameter 'p11'
+  parameter 'p12'
+  parameter 'p13'
+  parameter 'p14'
+  parameter 'p15'
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:62: warning: parameters of member mbed::BusOut::operator= are not (all) documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/BusOut.h:62: warning: return type of member mbed::BusOut::operator= is not documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CallChain.h:148: warning: parameters of member mbed::CallChain::remove are not (all) documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/CallChain.h:117: warning: return type of member mbed::CallChain::size is not documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalIn.h:46: warning: Member gpio (variable) of class mbed::DigitalIn is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalIn.h:75: warning: argument 'mode' of command @param is not found in the argument list of mbed::DigitalIn::mode(PinMode pull)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalIn.h:79: warning: The following parameters of mbed::DigitalIn::mode(PinMode pull) are not documented:
+  parameter 'pull'
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalInOut.h:27: warning: Member operator=(DigitalInOut &rhs) (function) of class mbed::DigitalInOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalInOut.h:27: warning: Member gpio (variable) of class mbed::DigitalInOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalInOut.h:80: warning: argument 'mode' of command @param is not found in the argument list of mbed::DigitalInOut::mode(PinMode pull)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalInOut.h:84: warning: The following parameters of mbed::DigitalInOut::mode(PinMode pull) are not documented:
+  parameter 'pull'
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalInOut.h:91: warning: parameters of member mbed::DigitalInOut::operator= are not (all) documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalInOut.h:91: warning: return type of member mbed::DigitalInOut::operator= is not documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalOut.h:41: warning: Member operator=(DigitalOut &rhs) (function) of class mbed::DigitalOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalOut.h:41: warning: Member gpio (variable) of class mbed::DigitalOut is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalOut.h:83: warning: parameters of member mbed::DigitalOut::operator= are not (all) documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/DigitalOut.h:83: warning: return type of member mbed::DigitalOut::operator= is not documented
+error: Problems running epstopdf. Check your TeX installation!
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member FileBase(const char *name, PathType t) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member getName(void) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member getPathType(void) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member lookup(const char *name, unsigned int len) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member get(int n) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _next (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _name (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _path_type (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _head (variable) of class mbed::FileBase is not documented.
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileHandle.h:42: warning: Member flen() (function) of class mbed::FileHandle is not documented.
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileLike.h:29: warning: Member FileLike(const char *name) (function) of class mbed::FileLike is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileHandle.h:42: warning: Member flen() (function) of class mbed::FileHandle is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member FileBase(const char *name, PathType t) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member getName(void) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member getPathType(void) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member lookup(const char *name, unsigned int len) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member get(int n) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _next (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _name (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _path_type (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _head (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FilePath.h:26: warning: Member FilePath(const char *file_path) (function) of class mbed::FilePath is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FilePath.h:26: warning: Member fileName(void) (function) of class mbed::FilePath is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FilePath.h:26: warning: Member isFileSystem(void) (function) of class mbed::FilePath is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FilePath.h:26: warning: Member fileSystem(void) (function) of class mbed::FilePath is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FilePath.h:26: warning: Member isFile(void) (function) of class mbed::FilePath is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FilePath.h:26: warning: Member file(void) (function) of class mbed::FilePath is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FilePath.h:26: warning: Member exists(void) (function) of class mbed::FilePath is not documented.
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member FileBase(const char *name, PathType t) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member getName(void) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member getPathType(void) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileSystemLike.h:33: warning: Member opendir() (function) of class mbed::FileSystemLike is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member lookup(const char *name, unsigned int len) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member get(int n) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _next (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _name (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _path_type (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _head (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileSystemLike.h:59: warning: argument 'returns' of command @param is not found in the argument list of mbed::FileSystemLike::remove(const char *filename)
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileSystemLike.h:64: warning: return type of member mbed::FileSystemLike::remove is not documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/InterruptManager.h:55: warning: return type of member mbed::InterruptManager::get is not documented
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member Stream(const char *name=NULL) (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member putc(int c) (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member puts(const char *s) (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member getc() (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member gets(char *s, int size) (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member printf(const char *format,...) (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member scanf(const char *format,...) (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member vprintf(const char *format, std::va_list args) (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member vscanf(const char *format, std::va_list args) (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member operator std::FILE *() (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileLike.h:29: warning: Member FileLike(const char *name) (function) of class mbed::FileLike is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member FileBase(const char *name, PathType t) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member getName(void) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member getPathType(void) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member flen() (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member _putc(int c)=0 (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member _getc()=0 (function) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Stream.h:25: warning: Member _file (variable) of class mbed::Stream is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _next (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _name (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _path_type (variable) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member lookup(const char *name, unsigned int len) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member get(int n) (function) of class mbed::FileBase is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/FileBase.h:52: warning: Member _head (variable) of class mbed::FileBase is not documented.
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Ticker.h:57: warning: Member Ticker(const ticker_data_t *const data) (function) of class mbed::Ticker is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member TimerEvent(const ticker_data_t *data) (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Ticker.h:57: warning: Member setup(timestamp_t t) (function) of class mbed::Ticker is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Ticker.h:57: warning: Member handler() (function) of class mbed::Ticker is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member insert(timestamp_t timestamp) (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member remove() (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member event (variable) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member _ticker_data (variable) of class mbed::TimerEvent is not documented.
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Timeout.h:51: warning: Member handler() (function) of class mbed::Timeout is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Ticker.h:57: warning: Member setup(timestamp_t t) (function) of class mbed::Ticker is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member insert(timestamp_t timestamp) (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member remove() (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Ticker.h:57: warning: Member Ticker(const ticker_data_t *const data) (function) of class mbed::Ticker is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member TimerEvent(const ticker_data_t *data) (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member event (variable) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member _ticker_data (variable) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Timer.h:45: warning: Member Timer(const ticker_data_t *const data) (function) of class mbed::Timer is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Timer.h:45: warning: Member operator float() (function) of class mbed::Timer is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Timer.h:45: warning: Member slicetime() (function) of class mbed::Timer is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Timer.h:67: warning: return type of member mbed::Timer::read is not documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Timer.h:71: warning: return type of member mbed::Timer::read_ms is not documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Timer.h:75: warning: return type of member mbed::Timer::read_us is not documented
+error: Problems running epstopdf. Check your TeX installation!
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member TimerEvent(const ticker_data_t *data) (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member handler()=0 (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member insert(timestamp_t timestamp) (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member remove() (function) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member event (variable) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:25: warning: Member _ticker_data (variable) of class mbed::TimerEvent is not documented.
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/TimerEvent.h:32: warning: parameters of member mbed::TimerEvent::irq are not (all) documented
+C:/Code/git_repo/github/yotta_thing/mbed-drivers/mbed-drivers/Transaction.h:47: warning: Member Transaction(Class *tpointer, const TransactionData &transaction) (function) of class mbed::Transaction is not documented.

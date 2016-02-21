@@ -1,0 +1,2 @@
+100.00%   ../../source/m2mconnectionsecuritypimpl.cpp
+100.00%   ../../yotta_modules/mbed-client/mbed-client/m2mtimerobserver.h

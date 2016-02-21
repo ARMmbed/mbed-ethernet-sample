@@ -1,0 +1,148 @@
+        -:    0:Source:../../../../source/m2mtimerpimpl.cpp
+        -:    0:Graph:objs/m2mtimerpimpl_mbed_unit/m2mtimerpimpl.gcno
+        -:    0:Data:objs/m2mtimerpimpl_mbed_unit/m2mtimerpimpl.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/*
+        -:    2: * Copyright (c) 2015 ARM Limited. All rights reserved.
+        -:    3: * SPDX-License-Identifier: Apache-2.0
+        -:    4: * Licensed under the Apache License, Version 2.0 (the License); you may
+        -:    5: * not use this file except in compliance with the License.
+        -:    6: * You may obtain a copy of the License at
+        -:    7: *
+        -:    8: * http://www.apache.org/licenses/LICENSE-2.0
+        -:    9: *
+        -:   10: * Unless required by applicable law or agreed to in writing, software
+        -:   11: * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+        -:   12: * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        -:   13: * See the License for the specific language governing permissions and
+        -:   14: * limitations under the License.
+        -:   15: */
+        -:   16:#include "mbed-client-mbed-os/m2mtimerpimpl.h"
+        -:   17:#include "mbed-client/m2mtimerobserver.h"
+        -:   18:
+        9:   19:M2MTimerPimpl::M2MTimerPimpl(M2MTimerObserver& observer)
+        -:   20:: _observer(observer),
+        -:   21:  _single_shot(true),
+        -:   22:  _interval(0),
+        -:   23:  _type(M2MTimerObserver::Notdefined),
+        -:   24:  _intermediate_interval(0),
+        -:   25:  _total_interval(0),
+        -:   26:  _status(0),
+        9:   27:  _still_left(0)
+        -:   28:{
+        -:   29:
+        9:   30:}
+        -:   31:
+       27:   32:M2MTimerPimpl::~M2MTimerPimpl()
+        -:   33:{
+        9:   34:    _ticker.detach();
+       18:   35:}
+        -:   36:
+        4:   37:void M2MTimerPimpl::start_timer( uint64_t interval,
+        -:   38:                                 M2MTimerObserver::Type type,
+        -:   39:                                 bool single_shot)
+        -:   40:{
+        4:   41:    _intermediate_interval = 0;
+        4:   42:    _total_interval = 0;
+        4:   43:    _status = 0;
+        4:   44:    _single_shot = single_shot;
+        4:   45:    _interval = interval;
+        4:   46:    _still_left = 0;
+        4:   47:    _type = type;
+        4:   48:    _ticker.detach();
+        -:   49:
+        4:   50:    if(_interval > (2000 * 1000)) {
+        1:   51:        _still_left = _interval - (2000 * 1000);
+        -:   52:        _ticker.attach_us(this,
+        -:   53:                      &M2MTimerPimpl::still_left_timer_expired,
+        1:   54:                      2000 * 1000 * 1000);
+        -:   55:    } else {
+        -:   56:    _ticker.attach_us(this,
+        -:   57:                  &M2MTimerPimpl::timer_expired,
+        3:   58:                  _interval * 1000);
+        -:   59:    }
+        -:   60:
+        4:   61:}
+        -:   62:
+        2:   63:void M2MTimerPimpl::start_dtls_timer(uint64_t intermediate_interval, uint64_t total_interval, M2MTimerObserver::Type type)
+        -:   64:{
+        2:   65:    _intermediate_interval = intermediate_interval;
+        2:   66:    _total_interval = total_interval;
+        2:   67:    _type = type;
+        2:   68:    _ticker.detach();
+        2:   69:    _status = 0;
+        -:   70:    _ticker.attach_us(this,
+        -:   71:                      &M2MTimerPimpl::dtls_timer_expired,
+        2:   72:                      _intermediate_interval * 1000);
+        2:   73:}
+        -:   74:
+        1:   75:void M2MTimerPimpl::stop_timer()
+        -:   76:{
+        1:   77:    _interval = 0;
+        1:   78:    _still_left = 0;
+        1:   79:    _single_shot = false;
+        1:   80:    _ticker.detach();
+        1:   81:}
+        -:   82:
+        2:   83:void M2MTimerPimpl::timer_expired()
+        -:   84:{
+        2:   85:    _observer.timer_expired(_type);
+        2:   86:    if(!_single_shot) {
+        1:   87:        start_timer(_interval, _type, true);
+        -:   88:    }
+        2:   89:}
+        -:   90:
+        3:   91:void M2MTimerPimpl::still_left_timer_expired()
+        -:   92:{
+        3:   93:    _ticker.detach();
+        3:   94:    if(_still_left > 0) {
+        2:   95:        if(_still_left > (2000 * 1000)) {
+        1:   96:            _still_left = _still_left - (2000 * 1000);
+        -:   97:            _ticker.attach_us(this,
+        -:   98:                          &M2MTimerPimpl::still_left_timer_expired,
+        1:   99:                          2000 * 1000 * 1000);
+        -:  100:        } else {
+        -:  101:            _ticker.attach_us(this,
+        -:  102:                          &M2MTimerPimpl::still_left_timer_expired,
+        1:  103:                          _still_left * 1000);
+        1:  104:            _still_left = 0;
+        -:  105:        }
+        -:  106:    } else {
+        1:  107:        _observer.timer_expired(_type);
+        1:  108:        if(!_single_shot) {
+        1:  109:            start_timer(_interval, _type, _single_shot);
+        -:  110:        }
+        -:  111:    }
+        3:  112:}
+        -:  113:
+        2:  114:void M2MTimerPimpl::dtls_timer_expired()
+        -:  115:{
+        2:  116:    _status++;
+        2:  117:    if(_status == 1) {
+        1:  118:       _observer.timer_expired(_type);
+        -:  119:        _ticker.attach_us(this,
+        -:  120:                          &M2MTimerPimpl::dtls_timer_expired,
+        1:  121:                          (_total_interval - _intermediate_interval) * 1000);
+        -:  122:    }else{
+        1:  123:        _ticker.detach();
+        1:  124:        _observer.timer_expired(_type);
+        -:  125:    }
+        2:  126:}
+        -:  127:
+        -:  128:
+        2:  129:bool M2MTimerPimpl::is_intermediate_interval_passed()
+        -:  130:{
+        2:  131:    if( _status > 0 ){
+        1:  132:        return true;
+        -:  133:    }
+        1:  134:    return false;
+        -:  135:}
+        -:  136:
+        2:  137:bool M2MTimerPimpl::is_total_interval_passed()
+        -:  138:{
+        2:  139:    if( _status > 1 ){
+        1:  140:        return true;
+        -:  141:    }
+        1:  142:    return false;
+        -:  143:}
