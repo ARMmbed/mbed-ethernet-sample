@@ -1,6 +1,0 @@
-  0.00%   ../common/FunctionPointerBase.h
-  0.00%   ../../yotta_modules/mbed-client/mbed-client/m2mstring.h
- 45.28%   ../common/FunctionPointer.h
- 50.00%   ../common/sockets/v0/SocketAddr.h
- 83.33%   ../../mbed-client-mbed-os/m2mconnectionhandlerpimpl.h
- 99.50%   ../../source/m2mconnectionhandlerpimpl.cpp
