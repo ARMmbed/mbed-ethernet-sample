@@ -4,7 +4,7 @@
   "bin": "./source",
   "private": true,
   "description": "mbed ethernet sample (K64F) for mbedConnectorInterface",
-  "author": "Doug Anson",
+  "author": "Doug Anson <doug.anson@arm.com>",
   "license": "Apache-2.0",
   "dependencies": {
     "mbed-client": "^1.2.16",
