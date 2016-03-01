@@ -1,6 +1,6 @@
 {
   "name": "kinetis-k64-gcc",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "inherits": {
     "mbed-gcc": "^1.0.0"
   },
@@ -42,6 +42,7 @@
     "mk64fn1m0vmd12",
     "mk64fn1m0",
     "mk64fn",
+    "kinetis",
     "freescale",
     "cortex-m4",
     "armv7-m",
