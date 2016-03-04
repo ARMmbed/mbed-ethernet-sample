@@ -71,7 +71,7 @@ Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
     			 .setConnectorURL(connector_url)                          							
                  
                  // For Ethernet, we will set the default CoAP Connection type to TCP
-                 .setCoAPConnectionType(COAP_TCP)								
+                 //.setCoAPConnectionType(COAP_TCP)								
                  
                  // set the Security Credentials and endpoint node information (all from security.h)
                  .setEndpointNodename(MBED_ENDPOINT_NAME)                    			
