@@ -11,6 +11,6 @@
     "mbed-connector-interface": "^1.1.48",
     "mbed-endpoint-network-eth": "^1.0.15",
     "fxos8700cq": "^0.1.4",
-    "lm75b": "^0.1.1"
+    "lm75b": "^0.1.2"
   }
 }
