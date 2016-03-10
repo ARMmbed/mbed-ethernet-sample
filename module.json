@@ -8,7 +8,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "mbed-client": "^1.2.16",
-    "mbed-connector-interface": "^1.1.52",
+    "mbed-connector-interface": "^1.1.53",
     "mbed-endpoint-network-eth": "^1.0.15",
     "fxos8700cq": "^0.1.5",
     "lm75b": "^0.1.2"
