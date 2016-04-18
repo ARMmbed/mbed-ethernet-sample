@@ -67,14 +67,15 @@ Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
     // Build the endpoint configuration parameters
     logger.log("Endpoint::Main: customizing endpoint configuration...");
     return config
-    			 // our URL to mbed Device Connector
-    			 .setConnectorURL(connector_url)                          							
+    		 // our URL to mbed Device Connector
+    		 .setConnectorURL(connector_url)                          							
                  
                  // For Ethernet, we will set the default CoAP Connection type to TCP
                  //.setCoAPConnectionType(COAP_TCP)								
                  
                  // set the Security Credentials and endpoint node information (all from security.h)
                  .setEndpointNodename(MBED_ENDPOINT_NAME)                    			
+		 .setEndpointType("mbed-example")				// some cloud services use the device type
                  .setDomain(MBED_DOMAIN)                                							  
                  .setServerCertificate((uint8_t *)SERVER_CERT,(int)sizeof(SERVER_CERT))
                  .setClientCertificate((uint8_t *)CERT,(int)sizeof(CERT))
@@ -104,8 +105,8 @@ Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
 // main entry point...
 void app_start(int, char *[])
 {
-	// set Serial
-	pc.baud(115200);
+    // set Serial
+    pc.baud(115200);
 	
     // Announce
     logger.log("\r\n\r\nmbed mDS Sample Endpoint v3.0 (Ethernet)");
