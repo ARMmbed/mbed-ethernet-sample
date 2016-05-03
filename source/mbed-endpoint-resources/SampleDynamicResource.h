@@ -77,27 +77,29 @@ public:
 	    	int instance_id = (int)param->get_argument_object_instance_id();
 	    	String resource_name = param->get_argument_resource_name();
 	    	string value = this->coapDataToString(param->get_argument_value(),param->get_argument_value_length());
-	 		this->logger()->log("SampleDynamicResource:  POST (resource: [%s/%d/%s], value: [%s]) called",object_name.c_str(),instance_id,resource_name.c_str(),value.c_str());
+	 		this->logger()->log("SampleDynamicResource:  post(resource: [%s/%d/%s], value: [%s]) called",object_name.c_str(),instance_id,resource_name.c_str(),value.c_str());
 	 	}
 	 	else {
-	 		this->logger()->log("SampleDynamicResource: POST(NULL) called");
+	 		this->logger()->log("SampleDynamicResource: post(NULL) called");
 	 	}
     	_sample_counter += 10;
     }
     
     /**
-    Post the value of the Sample Resource
+    Delete the value of the Sample Resource
     */
     virtual void del(void *args) {
         M2MResource::M2MExecuteParameter* param = (M2MResource::M2MExecuteParameter*)args;
     	if (param != NULL) {
 	    	// use parameters
+	    	String object_name = param->get_argument_object_name();
+	    	int instance_id = (int)param->get_argument_object_instance_id();
 	    	String resource_name = param->get_argument_resource_name();
 	    	string value = this->coapDataToString(param->get_argument_value(),param->get_argument_value_length());
-	 		this->logger()->log("SampleDynamicResource:  DELETE (param) [%s]=[%s]",resource_name.c_str(),value.c_str());
+	 		this->logger()->log("SampleDynamicResource:  delete(resource: [%s/%d/%s], value: [%s]) called",object_name.c_str(),instance_id,resource_name.c_str(),value.c_str());
 	 	}
 	 	else {
-	 		this->logger()->log("SampleDynamicResource: DELETE(NULL) called");
+	 		this->logger()->log("SampleDynamicResource: delete(NULL) called");
 	 	}
     	_sample_counter = 0;
     }
