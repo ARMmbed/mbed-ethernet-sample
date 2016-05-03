@@ -1,6 +1,6 @@
 {
   "name": "mbed-ethernet-sample",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "bin": "./source",
   "private": true,
   "description": "mbed ethernet sample (K64F) for mbedConnectorInterface",

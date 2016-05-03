@@ -70,6 +70,8 @@ public:
     Post the value of the Sample Resource
     */
     virtual void post(void *args) {
+    	int increment = 0;
+    	
     	M2MResource::M2MExecuteParameter* param = (M2MResource::M2MExecuteParameter*)args;
     	if (param != NULL) {
 	    	// use parameters
@@ -78,11 +80,15 @@ public:
 	    	String resource_name = param->get_argument_resource_name();
 	    	string value = this->coapDataToString(param->get_argument_value(),param->get_argument_value_length());
 	 		this->logger()->log("SampleDynamicResource:  post(resource: [%s/%d/%s], value: [%s]) called",object_name.c_str(),instance_id,resource_name.c_str(),value.c_str());
+	 		
+	 		// scan into incrementer
+	 		sscanf(value.c_str(),"%d",&increment);
 	 	}
 	 	else {
 	 		this->logger()->log("SampleDynamicResource: post(NULL) called");
+	 		increment = 20;
 	 	}
-    	_sample_counter += 10;
+    	_sample_counter += increment;
     }
     
     /**
