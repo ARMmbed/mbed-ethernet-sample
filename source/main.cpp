@@ -75,7 +75,7 @@ Connector::Options *configure_endpoint(Connector::OptionsBuilder &config)
                  
                  // set the Security Credentials and endpoint node information (all from security.h)
                  .setEndpointNodename(MBED_ENDPOINT_NAME)                    			
-		 .setEndpointType("mbed-example")				// some cloud services use the device type
+		         .setEndpointType("mbed-example")				// some cloud services use the device type
                  .setDomain(MBED_DOMAIN)                                							  
                  .setServerCertificate((uint8_t *)SERVER_CERT,(int)sizeof(SERVER_CERT))
                  .setClientCertificate((uint8_t *)CERT,(int)sizeof(CERT))
