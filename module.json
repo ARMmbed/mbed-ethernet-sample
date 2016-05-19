@@ -1,15 +1,15 @@
 {
   "name": "mbed-ethernet-sample",
-  "version": "1.0.15",
+  "version": "1.0.17",
   "bin": "./source",
   "private": true,
   "description": "mbed ethernet sample (K64F) for mbedConnectorInterface",
   "author": "Doug Anson <doug.anson@arm.com>",
   "license": "Apache-2.0",
   "dependencies": {
-    "mbed-client": "^1.2.16",
-    "mbed-connector-interface": "^1.1.79",
-    "mbed-endpoint-network-eth": "^1.0.15",
+    "mbed-client": "^1.12.0",
+    "mbed-connector-interface": "^1.1.84",
+    "mbed-endpoint-network-eth": "^1.0.21",
     "fxos8700cq": "^0.1.5",
     "lm75b": "^0.1.2"
   }

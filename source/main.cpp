@@ -21,13 +21,13 @@
  */
 
 // CUSTOMIZE ME: Define the core Device Types, Firmware, Hardware, Software information
-#define MY_DEVICE_MFG			"NXP"
+#define MY_DEVICE_MFG			"NXP/Freescale"
 #define MY_DEVICE_TYPE			"mbed-endpoint"
 #define MY_DEVICE_MODEL			"K64F"
-#define MY_DEVICE_SERIAL 		"0123456789"
-#define MY_FIRMWARE_VERSION		"1.0.0"
-#define MY_HARDWARE_VERSION		"1.0.0"
-#define MY_SOFTWARE_VERSION		"1.0.0"
+#define MY_DEVICE_SERIAL 		"0123777789"
+#define MY_FIRMWARE_VERSION		"1.0.1"
+#define MY_HARDWARE_VERSION		"1.0.2"
+#define MY_SOFTWARE_VERSION		"1.0.3"
 
 // Passphrase to supply for data management authentication
 #define MY_DM_PASSPHRASE		"arm1234"
