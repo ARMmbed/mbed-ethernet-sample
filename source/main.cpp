@@ -40,7 +40,7 @@
 
 // Logger
 #include "mbed-connector-interface/Logger.h"
-Serial pc(USBTX,USBRX);
+static Serial &pc = get_stdio_serial();
 Logger logger(&pc);
 
 // Include the default Device Management Responders
