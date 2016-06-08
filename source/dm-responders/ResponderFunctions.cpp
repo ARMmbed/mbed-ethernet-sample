@@ -92,7 +92,7 @@ extern "C" bool dm_reset_responder(const void *e,const void *l,const void */* no
 }
 
 // FOTA Invocation Handler
-extern "C" bool dm_invoke_fota(const void *e,const void *l,const void *data) {
+extern "C" bool dm_invoke_fota(const void *e,const void *l) {
     // Logger
     Logger *logger = (Logger *)l;
     
