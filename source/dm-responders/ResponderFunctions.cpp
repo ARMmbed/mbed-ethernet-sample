@@ -29,11 +29,17 @@
 // DeviceManagementResponder Support
 #include "mbed-connector-interface/DeviceManagementResponder.h"
 
-// DeviceIntegerResource Support (State and Result)
+// DeviceFirmwareCompositeResource Support
+#include "mbed-connector-interface/DeviceFirmwareCompositeResource.h"
+
+// DeviceIntegerResource Support
 #include "mbed-connector-interface/DeviceIntegerResource.h"
 
 // NVIC System Reset
 extern "C" void NVIC_SystemReset(void);
+
+// Logger instance
+static Logger *_logger = NULL;
 
 // Reboot Responder
 extern "C" bool dm_reboot_responder(const void *e,const void *l,const void */* not used */) {
@@ -49,9 +55,14 @@ extern "C" bool dm_reboot_responder(const void *e,const void *l,const void */* n
     // DeviceManagementResponder
     DeviceManagementResponder *dmr = (DeviceManagementResponder *)dm->getResponder();
     
-    // State and Result Resources
-    DeviceIntegerResource *state = (DeviceIntegerResource *)dmr->getStateResource();
-    DeviceIntegerResource *result = (DeviceIntegerResource *)dmr->getResultResource();
+    // FirmwareComposite Resource
+    DeviceFirmwareCompositeResource *fcr = (DeviceFirmwareCompositeResource *)dmr->getFirmwareCompositeResource();
+    
+    // DEBUG
+    logger->log("dm_reboot_responder: de-registering endpoint...");
+
+    // de-register the endpoint
+    ep->de_register_endpoint();
     
     // DEBUG
     logger->log("dm_reboot_responder: Rebooting endpoint...");
@@ -77,12 +88,17 @@ extern "C" bool dm_reset_responder(const void *e,const void *l,const void */* no
     // DeviceManagementResponder
     DeviceManagementResponder *dmr = (DeviceManagementResponder *)dm->getResponder();
     
-    // State and Result Resources
-    DeviceIntegerResource *state = (DeviceIntegerResource *)dmr->getStateResource();
-    DeviceIntegerResource *result = (DeviceIntegerResource *)dmr->getResultResource();
+    // FirmwareComposite Resource
+    DeviceFirmwareCompositeResource *fcr = (DeviceFirmwareCompositeResource *)dmr->getFirmwareCompositeResource();
     
     // DEBUG
-    logger->log("dm_reboot_responder: Resetting endpoint...");
+    logger->log("dm_reset_responder: de-registering endpoint...");
+
+    // de-register the endpoint
+    ep->de_register_endpoint();
+    
+    // DEBUG
+    logger->log("dm_reset_responder: Resetting endpoint...");
     
     // Reset (FUTURE)
     NVIC_SystemReset();
@@ -95,6 +111,7 @@ extern "C" bool dm_reset_responder(const void *e,const void *l,const void */* no
 extern "C" bool dm_invoke_fota(const void *e,const void *l) {
     // Logger
     Logger *logger = (Logger *)l;
+    _logger = logger;
     
     // Endpoint
     Connector::Endpoint *ep = (Connector::Endpoint *)e;
@@ -105,9 +122,21 @@ extern "C" bool dm_invoke_fota(const void *e,const void *l) {
     // DeviceManagementResponder
     DeviceManagementResponder *dmr = (DeviceManagementResponder *)dm->getResponder();
     
+    // FirmwareComposite Resource
+    DeviceFirmwareCompositeResource *fcr = (DeviceFirmwareCompositeResource *)dmr->getFirmwareCompositeResource();
+    
     // State and Result Resources
-    DeviceIntegerResource *state = (DeviceIntegerResource *)dmr->getStateResource();
-    DeviceIntegerResource *result = (DeviceIntegerResource *)dmr->getResultResource();
+    DeviceIntegerResource *state = (DeviceIntegerResource *)fcr->getResource(LWM2M_STATE_ID);
+    DeviceIntegerResource *result = (DeviceIntegerResource *)fcr->getResource(LWM2M_RESULT_ID);
+    
+    // DEBUG
+    logger->log("fota_update: de-registering endpoint...");
+    
+    // de-register the endpoint
+    ep->de_register_endpoint();
+    
+    // DEBUG
+    logger->log("fota_update: invoking FOTA on the endpoint...");
     
     // Download
     result->put("0");   // FOTA beginning
@@ -122,9 +151,6 @@ extern "C" bool dm_invoke_fota(const void *e,const void *l) {
     state->put("1");    // idle
     result->put("1");   // FOTA completed successfully 
     logger->log("fota_update: FOTA completed. Rebooting endpoint...");
-    
-    // Reboot
-    NVIC_SystemReset();
     
     // return OK
     return true;
