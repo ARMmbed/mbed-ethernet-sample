@@ -29,16 +29,28 @@
 // DeviceManagementResponder Support
 #include "mbed-connector-interface/DeviceManagementResponder.h"
 
+// Logger instance
+static Logger *_logger = NULL;
+
 // NVIC System Reset
 extern "C" void NVIC_SystemReset(void);
 
-// Logger instance
-static Logger *_logger = NULL;
+// Initialize
+extern "C" void dm_initialize(const void *l) {
+    // Logger
+    Logger *logger = (Logger *)l;
+    _logger = logger;
+    
+    // Initialize
+    logger->log("dm_initialize: initialized");
+}
+
 
 // Reboot Responder
 extern "C" bool dm_reboot_responder(const void *e,const void *l,const void */* not used */) {
     // Logger
     Logger *logger = (Logger *)l;
+     _logger = logger;
     
     // Endpoint
     Connector::Endpoint *ep = (Connector::Endpoint *)e;
@@ -47,7 +59,7 @@ extern "C" bool dm_reboot_responder(const void *e,const void *l,const void */* n
     //DeviceManager *dm = (DeviceManager *)ep->getDeviceManager();
     
     // DeviceManagementResponder
-    // DeviceManagementResponder *dmr = (DeviceManagementResponder *)dm->getResponder();
+    //DeviceManagementResponder *dmr = (DeviceManagementResponder *)dm->getResponder();
         
     // DEBUG
     logger->log("dm_reboot_responder: de-registering endpoint...");
@@ -69,6 +81,7 @@ extern "C" bool dm_reboot_responder(const void *e,const void *l,const void */* n
 extern "C" bool dm_reset_responder(const void *e,const void *l,const void */* not used */) {
     // Logger
     Logger *logger = (Logger *)l;
+     _logger = logger;
     
     // Endpoint
     Connector::Endpoint *ep = (Connector::Endpoint *)e;
@@ -95,11 +108,47 @@ extern "C" bool dm_reset_responder(const void *e,const void *l,const void */* no
     return true;
 }
 
+// FOTA Manifest is set
+extern "C" bool dm_set_manifest(const void *e,const void *l,const void *manifest,uint32_t manifest_length) {
+    // Logger
+    Logger *logger = (Logger *)l;
+     _logger = logger;
+    
+    // Endpoint
+    Connector::Endpoint *ep = (Connector::Endpoint *)e;
+    if (ep->isRegistered() && manifest != NULL && manifest_length > 0) {
+        // set the manifest
+        logger->log("dm_set_manifest: Manifest: %s (%d)",(char *)manifest,(int)manifest_length);
+        
+        // return our processed status
+        return true;
+    }
+    return false;
+}
+
+// FOTA Image is Set
+extern "C" bool dm_set_fota_image(const void *e,const void *l,const void *image,uint32_t image_length) {
+    // Logger
+    Logger *logger = (Logger *)l;
+     _logger = logger;
+    
+    // Endpoint
+    Connector::Endpoint *ep = (Connector::Endpoint *)e;
+    if (ep->isRegistered() && image != NULL && image_length > 0) {
+        // set the manifest
+        logger->log("dm_set_fota_image: Image length: %d",(int)image_length);
+        
+        // return our processed status
+        return true;
+    }
+    return false;
+}
+
 // FOTA Invocation Handler
 extern "C" bool dm_invoke_fota(const void *e,const void *l) {
     // Logger
     Logger *logger = (Logger *)l;
-    _logger = logger;
+     _logger = logger;
     
     // Endpoint
     Connector::Endpoint *ep = (Connector::Endpoint *)e;

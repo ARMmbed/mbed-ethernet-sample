@@ -125,8 +125,11 @@ void app_start(int, char *[])
     logger.log("\r\n\r\nmbed mDS Sample Endpoint v3.0 (Ethernet)");
     
     // Register the default Device Management Responders
+    dm_processor.setInitializeHandler(dm_initialize);
     dm_processor.setRebootResponderHandler(dm_reboot_responder);
     dm_processor.setResetResponderHandler(dm_reset_responder);
+    dm_processor.setFOTAManifestHandler(dm_set_manifest);
+    dm_processor.setFOTAImageHandler(dm_set_fota_image);
     dm_processor.setFOTAInvocationHandler(dm_invoke_fota);
 	 
     // we have to plumb our network first
